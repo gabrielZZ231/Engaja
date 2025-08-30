@@ -12,7 +12,7 @@
       </div>
 
       <div class="col-md-4 d-flex flex-column align-items-center">
-        <a href="/eventos" class="mb-2 text-decoration-none text-dark fw-semibold link-hover">Eventos</a>
+        <a href="{{ route('eventos.index') }}" class="mb-2 text-decoration-none text-dark fw-semibold link-hover">Eventos</a>
         <a href="#" class="mb-2 text-decoration-none text-dark fw-semibold link-hover">Pesquisar</a>
         <a href="#" class="mb-2 text-decoration-none text-dark fw-semibold link-hover">Pesquisas e Memórias</a>
       </div>
