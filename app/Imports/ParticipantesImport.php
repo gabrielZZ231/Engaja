@@ -15,15 +15,22 @@ use Maatwebsite\Excel\Concerns\SkipsEmptyRows;
 
 class ParticipantesImport implements ToModel, WithHeadingRow, SkipsEmptyRows
 {
-
     public Collection $importados;
+
+    /** @var array<string,int> */
+    protected array $municipiosCache = [];
 
     public function __construct()
     {
-        // Inicializa como uma nova Collection vazia
         $this->importados = new Collection();
-    }
 
+        // Pré-carrega os municípios em memória para evitar query em cada linha
+        $this->municipiosCache = Municipio::query()
+            ->select('id', 'nome')
+            ->get()
+            ->mapWithKeys(fn ($m) => [mb_strtolower(trim($m->nome)) => $m->id])
+            ->all();
+    }
 
     public function headingRow(): int
     {
@@ -32,17 +39,16 @@ class ParticipantesImport implements ToModel, WithHeadingRow, SkipsEmptyRows
 
     public function model(array $row)
     {
-        // 🔹 Tenta achar município, mas se não encontrar, deixa null
-        // TODO melhorar performance evitando consulta a cada linha
+        // Resolve municipio_id usando cache
         $municipioId = null;
         if (!empty($row['municipio'])) {
-            $municipio = Municipio::whereRaw('LOWER(nome) = ?', [mb_strtolower(trim($row['municipio']))])->first();
-            if ($municipio) {
-                $municipioId = $municipio->id;
+            $key = mb_strtolower(trim((string) $row['municipio']));
+            if (isset($this->municipiosCache[$key])) {
+                $municipioId = $this->municipiosCache[$key];
             }
         }
 
-        // 🔹 Cria ou reaproveita usuário pelo email
+        // Cria ou reaproveita usuário pelo email
         $email = strtolower(trim((string)($row['email'] ?? '')));
         $name  = trim((string)($row['nome'] ?? ''));
 
@@ -54,7 +60,7 @@ class ParticipantesImport implements ToModel, WithHeadingRow, SkipsEmptyRows
             ]
         );
 
-        // 🔹 Normaliza data de entrada
+        // Normaliza data de entrada
         $dataEntrada = null;
         if (!empty($row['data_entrada'])) {
             try {
@@ -64,13 +70,13 @@ class ParticipantesImport implements ToModel, WithHeadingRow, SkipsEmptyRows
             }
         }
 
-        // 🔹 Cria ou atualiza participante
+        // Cria ou atualiza participante
         $participante = Participante::updateOrCreate(
             [
-                'user_id'   => $user->id,
+                'user_id' => $user->id,
             ],
             [
-                'municipio_id'   => $municipioId, // pode ser null
+                'municipio_id'   => $municipioId,
                 'cpf'            => $row['cpf'] ?? null,
                 'telefone'       => $row['telefone'] ?? null,
                 'escola_unidade' => $row['escola_unidade'] ?? null,
