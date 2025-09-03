@@ -7,7 +7,7 @@
     <div>
       <h1 class="h4 fw-bold text-engaja mb-1">Importar inscrições</h1>
       <div class="text-muted small">
-        Evento: <strong>{{ $evento->nome }}</strong>
+        Ação pedagógica: <strong>{{ $evento->nome }}</strong>
         @if($evento->data_horario)
           • {{ \Carbon\Carbon::parse($evento->data_horario)->format('d/m/Y H:i') }}
         @endif
@@ -15,7 +15,7 @@
     </div>
 
     <a href="{{ route('eventos.show', $evento) }}" class="btn btn-outline-secondary">
-      Voltar ao evento
+      Voltar à ação pedagógica
     </a>
   </div>
 

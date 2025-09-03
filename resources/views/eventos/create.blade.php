@@ -3,7 +3,7 @@
 @section('content')
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 fw-bold text-engaja mb-0">Novo evento</h1>
+        <h1 class="h3 fw-bold text-engaja mb-0">Nova ação pedagógica</h1>
         <a href="{{ route('eventos.index') }}" class="btn btn-outline-secondary">Voltar</a>
     </div>
 
@@ -36,7 +36,7 @@
 
                 {{-- Nome --}}
                 <div class="col-md-6">
-                    <label for="nome" class="form-label">Nome do evento <span class="text-danger">*</span></label>
+                    <label for="nome" class="form-label">Nome da ação pedagógica <span class="text-danger">*</span></label>
                     <input id="nome" name="nome" type="text"
                            value="{{ old('nome') }}"
                            class="form-control @error('nome') is-invalid @enderror" required>
@@ -108,7 +108,7 @@
 
                 {{-- Imagem do evento --}}
                 <div class="col-md-6">
-                    <label for="imagem" class="form-label">Imagem do evento</label>
+                    <label for="imagem" class="form-label">Imagem da ação pedagógica</label>
                     <input id="imagem" name="imagem" type="file"
                            class="form-control @error('imagem') is-invalid @enderror"
                            accept="image/*">
@@ -124,7 +124,7 @@
                     <label for="objetivo" class="form-label">Objetivo</label>
                     <textarea id="objetivo" name="objetivo" rows="3"
                               class="form-control @error('objetivo') is-invalid @enderror"
-                              placeholder="Descreva o objetivo do evento…">{{ old('objetivo') }}</textarea>
+                              placeholder="Descreva o objetivo da ação pedagógica…">{{ old('objetivo') }}</textarea>
                     @error('objetivo') <div class="invalid-feedback">{{ $message }}</div> @enderror
                 </div>
 
@@ -139,7 +139,7 @@
 
                 <div class="col-12 d-flex justify-content-end gap-2 mt-3">
                     <a href="{{ route('eventos.index') }}" class="btn btn-outline-secondary">Cancelar</a>
-                    <button type="submit" class="btn btn-engaja">Salvar evento</button>
+                    <button type="submit" class="btn btn-engaja">Salvar ação pedagógica</button>
                 </div>
             </form>
         </div>

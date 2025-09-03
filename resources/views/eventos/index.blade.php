@@ -3,8 +3,8 @@
 @section('content')
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 fw-bold text-engaja mb-0">Eventos</h1>
-        <a href="{{ route('eventos.create') }}" class="btn btn-engaja">Novo evento</a>
+        <h1 class="h3 fw-bold text-engaja mb-0">Ações pedagógicas</h1>
+        <a href="{{ route('eventos.create') }}" class="btn btn-engaja">Nova ação pedagógica</a>
     </div>
     {{-- Filtros / busca --}}
     <form method="GET" class="row g-2 mb-3">
@@ -64,7 +64,7 @@
                         </td>
                     </tr>
                 @empty
-                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhum evento encontrado.</td></tr>
+                    <tr><td colspan="6" class="text-center text-muted py-4">Nenhuma ação pedagógica encontrado.</td></tr>
                 @endforelse
             </tbody>
         </table>

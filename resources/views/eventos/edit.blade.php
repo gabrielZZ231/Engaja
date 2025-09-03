@@ -3,7 +3,7 @@
 @section('content')
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
-        <h1 class="h3 fw-bold text-engaja mb-0">Editar evento</h1>
+        <h1 class="h3 fw-bold text-engaja mb-0">Editar ação pedagógica</h1>
         <a href="{{ route('eventos.index') }}" class="btn btn-outline-secondary">Voltar</a>
     </div>
 
@@ -32,7 +32,7 @@
 
                 {{-- Nome --}}
                 <div class="col-md-6">
-                    <label for="nome" class="form-label">Nome do evento <span class="text-danger">*</span></label>
+                    <label for="nome" class="form-label">Nome da ação pedagógica <span class="text-danger">*</span></label>
                     <input id="nome" name="nome" type="text"
                            value="{{ old('nome', $evento->nome) }}"
                            class="form-control @error('nome') is-invalid @enderror" required>
@@ -103,7 +103,7 @@
 
                 {{-- Imagem atual (preview) + troca --}}
                 <div class="col-md-6">
-                    <label class="form-label d-block">Imagem do evento</label>
+                    <label class="form-label d-block">Imagem da ação pedagógica</label>
 
                     {{-- preview da imagem atual, se existir --}}
                     @if ($evento->imagem)

@@ -223,7 +223,7 @@
   {{-- Descrição / Objetivo --}}
   @if($evento->resumo)
   <div class="mb-4">
-    <h2 class="h5 fw-bold mb-2">Descrição do Evento</h2>
+    <h2 class="h5 fw-bold mb-2">Descrição da ação pedagógica</h2>
     <div class="ev-card p-3">
       <p class="mb-0">{{ $evento->resumo }}</p>
     </div>
@@ -232,7 +232,7 @@
 
   @if($evento->objetivo)
   <div class="mb-4">
-    <h2 class="h5 fw-bold mb-2">Objetivos do Evento</h2>
+    <h2 class="h5 fw-bold mb-2">Objetivos da ação pedagógica</h2>
     <div class="ev-card p-3">
       <p class="mb-0">{{ $evento->objetivo }}</p>
     </div>
@@ -254,10 +254,10 @@
       @can('update', $evento)
       <div class="d-flex gap-2">
         <a href="{{ route('eventos.atividades.create', $evento) }}" class="btn btn-engaja btn-sm">
-          + Nova atividade
+          + Novo momento
         </a>
         <a href="{{ route('eventos.atividades.index', $evento) }}" class="btn btn-outline-secondary btn-sm">
-          Ver todas
+          Ver todos
         </a>
       </div>
       @endcan
@@ -286,7 +286,7 @@
       @if($porDia->isEmpty())
       <div class="empty-state">
         <div class="mb-1" style="font-size:1.6rem">🗓️</div>
-        Nenhuma atividade cadastrada ainda.
+        Nenhum momento cadastrado ainda.
       </div>
       @else
       @foreach($dias as $i => $dia)
@@ -297,7 +297,7 @@
           @php
           $ini = Carbon::parse($at->hora_inicio)->format('H:i');
           $fim = !empty($at->hora_fim) ? Carbon::parse($at->hora_fim)->format('H:i') : null;
-          $titulo= $at->titulo ?? 'Atividade';
+          $titulo= $at->titulo ?? 'Momento';
           $local = $at->local ?? null;
           $ch = $at->carga_horaria ?? null;
           $descr = $at->descricao ?? null;
@@ -329,7 +329,7 @@
                     Editar
                   </a>
                   <form action="{{ route('atividades.destroy', $at) }}" method="POST"
-                    onsubmit="return confirm('Excluir atividade?');" class="d-inline">
+                    onsubmit="return confirm('Excluir momento?');" class="d-inline">
                     @csrf @method('DELETE')
                     <button class="btn btn-sm btn-outline-danger">
                       Excluir
