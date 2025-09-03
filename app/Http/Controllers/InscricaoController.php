@@ -152,33 +152,90 @@ class InscricaoController extends Controller
         DB::transaction(function () use ($rows, $evento) {
             $ids = [];
 
+            // 1. Coleta todos os emails únicos
+            $emails = collect($rows)->pluck('email')->map(fn($e) => strtolower(trim((string)$e)))->unique()->filter()->values();
+            $usersExistentes = User::whereIn('email', $emails)->get()->keyBy(fn($u) => strtolower($u->email));
+
+            $novosUsuarios = [];
             foreach ($rows as $row) {
                 $email = strtolower(trim((string)($row['email'] ?? '')));
+                if (!$email || $usersExistentes->has($email)) continue;
                 $name  = trim((string)($row['nome'] ?? ''));
-
-                $user = User::firstOrCreate(
-                    ['email' => $email],
-                    [
-                        'name'     => $name !== '' ? $name : ($row['cpf'] ?? 'Participante'),
-                        'password' => Hash::make(Str::random(12)),
-                    ]
-                );
-
-                $participante = Participante::updateOrCreate(
-                    ['user_id' => $user->id],
-                    [
-                        'municipio_id'   => $row['municipio_id'] ?? null,
-                        'cpf'            => $row['cpf'] ?? null,
-                        'telefone'       => $row['telefone'] ?? null,
-                        'escola_unidade' => $row['escola_unidade'] ?? null,
-                        'data_entrada'   => $row['data_entrada'] ?? null,
-                    ]
-                );
-
-                $ids[] = $participante->id;
+                $novosUsuarios[] = [
+                    'email'    => $email,
+                    'name'     => $name !== '' ? $name : ($row['cpf'] ?? 'Participante'),
+                    'password' => Hash::make(Str::random(12)),
+                ];
+            }
+            if (count($novosUsuarios)) {
+                User::insert($novosUsuarios);
+                // Atualiza a lista de usuários existentes
+                $usersExistentes = User::whereIn('email', $emails)->get()->keyBy(fn($u) => strtolower($u->email));
             }
 
-            $evento->participantes()->whereNotIn('id', $ids)->syncWithoutDetaching($ids);
+            // 2. Participantes: busca todos existentes por user_id
+            $userIds = $usersExistentes->pluck('id')->values();
+            $participantesExistentes = Participante::whereIn('user_id', $userIds)->get()->keyBy('user_id');
+
+            $novosParticipantes = [];
+            $atualizacoes = [];
+            foreach ($rows as $row) {
+                $email = strtolower(trim((string)($row['email'] ?? '')));
+                if (!$email) continue;
+                $user = $usersExistentes[$email] ?? null;
+                if (!$user) continue;
+                $userId = $user->id;
+                $dados = [
+                    'municipio_id'   => $row['municipio_id'] ?? null,
+                    'cpf'            => $row['cpf'] ?? null,
+                    'telefone'       => $row['telefone'] ?? null,
+                    'escola_unidade' => $row['escola_unidade'] ?? null,
+                    'data_entrada'   => $row['data_entrada'] ?? null,
+                ];
+                if ($participantesExistentes->has($userId)) {
+                    // Atualização em lote depois
+                    $atualizacoes[] = ['user_id' => $userId] + $dados;
+                    $ids[] = $participantesExistentes[$userId]->id;
+                } else {
+                    $dados['user_id'] = $userId;
+                    $dados['created_at'] = now();
+                    $novosParticipantes[] = $dados;
+                }
+            }
+            // Insert em lote
+            if (count($novosParticipantes)) {
+                Participante::insert($novosParticipantes);
+                // Atualiza lista de participantes existentes
+                $participantesExistentes = Participante::whereIn('user_id', $userIds)->get()->keyBy('user_id');
+                foreach ($novosParticipantes as $np) {
+                    $ids[] = $participantesExistentes[$np['user_id']]->id ?? null;
+                }
+            }
+            // Update em lote
+            if (count($atualizacoes)) {
+                $idsToUpdate = array_column($atualizacoes, 'user_id');
+                $campos = ['municipio_id', 'cpf', 'telefone', 'escola_unidade', 'data_entrada'];
+                $cases = [];
+                foreach ($campos as $field) {
+                    $sql = "$field = CASE user_id\n";
+                    foreach ($atualizacoes as $upd) {
+                        $value = $upd[$field] === null ? 'NULL' : DB::getPdo()->quote($upd[$field]);
+                        $sql .= "WHEN {$upd['user_id']} THEN $value\n";
+                    }
+                    $sql .= "ELSE $field END";
+                    $cases[] = $sql;
+                }
+                $setSql = implode(",\n", $cases);
+                $idsStr = implode(',', $idsToUpdate);
+                DB::statement("UPDATE participantes SET $setSql WHERE user_id IN ($idsStr)");
+            }
+
+            // Remove nulls do array de ids
+            $ids = array_filter($ids);
+            // Insere os novos vínculos (sem duplicatas)
+            $existingIds = $evento->participantes()->pluck('participante_id')->all();
+            $newIds = array_diff($ids, $existingIds);
+            $evento->participantes()->attach($newIds);
         });
 
         session()->forget($sessionKey);
