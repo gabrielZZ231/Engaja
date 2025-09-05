@@ -92,9 +92,11 @@ $dia = \Carbon\Carbon::parse($atividade->dia)
       </form>
 
       @else
-      <a class="btn btn-primary btn-sm" href="{{ route('login') }}?redirect={{ urlencode(request()->fullUrl()) }}">
-        Entrar para confirmar presença
-      </a>
+      @if($atividade->presenca_ativa)
+        <a class="btn btn-primary btn-sm" href="{{ route('presenca.confirmar', $atividade) }}">
+          Confirmar presença
+        </a>
+        @endif
       @endauth
     </div>
 
@@ -133,68 +135,70 @@ $dia = \Carbon\Carbon::parse($atividade->dia)
     </div>
   </div>
 
+  @can('presenca.abrir')
   {{-- Lista de presenças --}}
-  <div class="mb-4">
-    <h2 class="h6 fw-bold mb-2">Participantes com presença registrada</h2>
+    <div class="mb-4">
+        <h2 class="h6 fw-bold mb-2">Participantes com presença registrada</h2>
 
-    @php
-    $lista = $atividade->presencas()->with([
-    'inscricao.participante.user:id,name,email',
-    'inscricao.participante.municipio.estado:id,nome,sigla'
-    ])->orderByDesc('id')->paginate(25);
-    @endphp
+        @php
+        $lista = $atividade->presencas()->with([
+        'inscricao.participante.user:id,name,email',
+        'inscricao.participante.municipio.estado:id,nome,sigla'
+        ])->orderByDesc('id')->paginate(25);
+        @endphp
 
-    @if($lista->count() === 0)
-    <div class="ev-card p-3 text-muted">Nenhuma presença registrada para este momento.</div>
-    @else
-    <div class="table-responsive">
-      <table class="table table-sm table-bordered align-middle bg-white">
-        <thead class="table-light">
-          <tr>
-            <th>Nome</th>
-            <th>E-mail</th>
-            <th>Município</th>
-            <th style="min-width:140px;">Status</th>
-            <th>Justificativa</th>
-            <th style="min-width:140px;">Marcado em</th>
-          </tr>
-        </thead>
-        <tbody>
-          @foreach($lista as $pr)
-          @php
-          $p = $pr->inscricao->participante ?? null;
-          $u = $p?->user;
-          $m = $p?->municipio;
-          $uf = $m?->estado?->sigla;
-          $munLabel = $m ? ($m->nome . ($uf ? " - $uf" : "")) : '—';
-          $status = $pr->status_participacao ?? $pr->status ?? null;
-          @endphp
-          <tr>
-            <td>{{ $u->name ?? '—' }}</td>
-            <td>{{ $u->email ?? '—' }}</td>
-            <td>{{ $munLabel }}</td>
-            <td>
-              @switch($status)
-              @case('presente') <span class="badge bg-success">Presente</span> @break
-              @case('ausente') <span class="badge bg-secondary">Ausente</span> @break
-              @case('justificado') <span class="badge bg-warning text-dark">Justificado</span> @break
-              @default <span class="badge bg-light text-muted">—</span>
-              @endswitch
-            </td>
-            <td>{{ $pr->justificativa ?? '—' }}</td>
-            <td>{{ optional($pr->updated_at ?? $pr->created_at)->format('d/m/Y H:i') ?? '—' }}</td>
-          </tr>
-          @endforeach
-        </tbody>
-      </table>
+        @if($lista->count() === 0)
+        <div class="ev-card p-3 text-muted">Nenhuma presença registrada para este momento.</div>
+        @else
+        <div class="table-responsive">
+        <table class="table table-sm table-bordered align-middle bg-white">
+            <thead class="table-light">
+            <tr>
+                <th>Nome</th>
+                <th>E-mail</th>
+                <th>Município</th>
+                <th style="min-width:140px;">Status</th>
+                <th>Justificativa</th>
+                <th style="min-width:140px;">Marcado em</th>
+            </tr>
+            </thead>
+            <tbody>
+            @foreach($lista as $pr)
+            @php
+            $p = $pr->inscricao->participante ?? null;
+            $u = $p?->user;
+            $m = $p?->municipio;
+            $uf = $m?->estado?->sigla;
+            $munLabel = $m ? ($m->nome . ($uf ? " - $uf" : "")) : '—';
+            $status = $pr->status_participacao ?? $pr->status ?? null;
+            @endphp
+            <tr>
+                <td>{{ $u->name ?? '—' }}</td>
+                <td>{{ $u->email ?? '—' }}</td>
+                <td>{{ $munLabel }}</td>
+                <td>
+                @switch($status)
+                @case('presente') <span class="badge bg-success">Presente</span> @break
+                @case('ausente') <span class="badge bg-secondary">Ausente</span> @break
+                @case('justificado') <span class="badge bg-warning text-dark">Justificado</span> @break
+                @default <span class="badge bg-light text-muted">—</span>
+                @endswitch
+                </td>
+                <td>{{ $pr->justificativa ?? '—' }}</td>
+                <td>{{ optional($pr->updated_at ?? $pr->created_at)->format('d/m/Y H:i') ?? '—' }}</td>
+            </tr>
+            @endforeach
+            </tbody>
+        </table>
+        </div>
+
+        <div class="d-flex justify-content-between align-items-center">
+        <div class="small text-muted">Exibindo {{ $lista->count() }} de {{ $lista->total() }}</div>
+        {{ $lista->links() }}
+        </div>
+        @endif
     </div>
-
-    <div class="d-flex justify-content-between align-items-center">
-      <div class="small text-muted">Exibindo {{ $lista->count() }} de {{ $lista->total() }}</div>
-      {{ $lista->links() }}
-    </div>
-    @endif
-  </div>
+  @endcan
 
 </div>
 @endsection

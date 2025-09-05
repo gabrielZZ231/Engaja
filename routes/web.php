@@ -3,6 +3,7 @@
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\AtividadeController;
 use App\Http\Controllers\InscricaoController;
+use App\Http\Controllers\PresencaController;
 use App\Http\Controllers\PresencaImportController;
 use Illuminate\Support\Facades\Route;
 
@@ -54,5 +55,8 @@ Route::middleware(['auth', 'role:administrador|participante'])->group(function (
 Route::resource('eventos.atividades', AtividadeController::class)
     ->parameters(['atividades' => 'atividade'])
     ->shallow();
+
+Route::get('/presenca/{atividade}/confirmar', [PresencaController::class, 'confirmarPresenca'])->name('presenca.confirmar');
+Route::post('/presenca/{atividade}/confirmar', [PresencaController::class, 'store'])->name('presenca.store');
 
 require __DIR__ . '/auth.php';
