@@ -5,6 +5,9 @@ namespace App\Http\Controllers;
 use App\Models\Evento;
 use App\Models\Eixo;
 use App\Models\User;
+use App\Models\Participante;
+use App\Models\Atividade;
+use App\Models\Inscricao;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
@@ -151,15 +154,16 @@ class EventoController extends Controller
         return redirect()->route('eventos.index')->with('success', 'Evento excluído.');
     }
 
-    public function cadastro_inscricao($evento_id)
+    public function cadastro_inscricao($evento_id, $atividade_id)
     {
         $evento = Evento::findOrFail($evento_id);
+        $atividade = Atividade::findOrFail($atividade_id);
 
         $municipios = \App\Models\Municipio::with('estado')
             ->orderBy('nome')
             ->get(['id', 'nome', 'estado_id']);
 
-        return view('auth.cadastro-participante', compact('evento', 'municipios'));
+        return view('auth.cadastro-participante', compact('evento', 'municipios', 'atividade'));
     }
 
     public function store_cadastro_inscricao(CadastroParticipanteStoreRequest $request)
@@ -173,6 +177,7 @@ class EventoController extends Controller
         $data = $request->validated();
 
         $evento = Evento::findOrFail($request->evento_id);
+        $atividade = Atividade::findOrFail($request->atividade_id);
 
         try {
             DB::beginTransaction();
@@ -198,6 +203,7 @@ class EventoController extends Controller
             );
 
             $this->inscricao($user, $evento);
+            $this->presenca($user->participante, $atividade);
 
             DB::commit();
 
@@ -207,7 +213,7 @@ class EventoController extends Controller
         } catch (\Throwable $e) {
             DB::rollBack();
 
-            return redirect()->back()->with('error', 'Cadastro, inscrição e presença realizados!');
+            return redirect()->back()->with('error', 'Ocorreu um erro ao tentar realizar o cadastro!');
         }
     }
 
@@ -223,15 +229,23 @@ class EventoController extends Controller
 
         if (!$exists) {
             $inscricao = \DB::table('inscricaos')->insert([
-                            'evento_id'       => $evento->id,
-                            'participante_id' => $participante->id,
-                            'created_at'      => now(),
-                            'updated_at'      => now(),
-                        ]);
-            
+                'evento_id'       => $evento->id,
+                'participante_id' => $participante->id,
+                'created_at'      => now(),
+                'updated_at'      => now(),
+            ]);
+
             return $inscricao;
         } else {
             return $exists;
         }
+    }
+
+    public function presenca(Participante $participante, Atividade $atividade)
+    {
+        $atividade->presencas()->updateOrCreate(
+            ['inscricao_id' => $participante->inscricoes()->where('evento_id', $atividade->evento->id)->first()->id],
+            ['status' => 'presente']
+        );
     }
 }
