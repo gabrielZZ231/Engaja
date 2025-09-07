@@ -7,8 +7,8 @@
       <div class="col-md-8">
         <div class="card ev-card">
           <div class="card-body">
-            <h1 class="h5 fw-bold mb-3">Confirmar Presença</h1>
-            <p class="mb-3">Para confirmar sua presença, por favor, insira seu e-mail, CPF ou telefone abaixo:</p>
+            <h1 class="h5 fw-bold mb-3">Olá, seja bem vindo (a)!</h1>
+            <p class="mb-3">Para confirmar a sua presença na atividade de hoje, basta preencher o seu E-mail, CPF ou telefone e clicar no botão.<br/></p>
             <form method="POST" action="{{ route('presenca.store', $atividade) }}">
               @csrf
               <div class="mb-3">
