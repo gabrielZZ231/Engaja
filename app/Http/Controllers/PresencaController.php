@@ -47,6 +47,6 @@ class PresencaController extends Controller
             ['inscricao_id' => $participante->inscricoes()->where('evento_id', $atividade->evento->id)->first()->id],
             ['status' => 'presente']
         );
-        return redirect()->route('eventos.show', $atividade)->with('success', 'Presença confirmada com sucesso!');
+        return redirect()->route('eventos.show', $atividade->evento->id)->with('success', 'Presença confirmada com sucesso!');
     }
 }
