@@ -26,6 +26,15 @@
                     <label class="form-label mb-1">Até</label>
                     <input type="date" name="ate" value="{{ request('ate') }}" class="form-control form-control-sm">
                 </div>
+                <div class="col-md-2">
+                    <label class="form-label mb-1">Por página</label>
+                    <select name="per_page" class="form-select form-select-sm" onchange="this.form.submit()">
+                        <option value="25" @selected(request('per_page', 25)==25)>25</option>
+                        <option value="50" @selected(request('per_page')==50)>50</option>
+                        <option value="100" @selected(request('per_page')==100)>100</option>
+                    </select>
+                </div>
+
 
                 <div class="col-md-3">
                     <label class="form-label mb-1">Buscar (momento/ação)</label>
