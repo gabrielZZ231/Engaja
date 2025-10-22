@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\Questao;
 use App\Models\TemplateAvaliacao;
+use App\Models\Evidencia;
 use Illuminate\Database\Seeder;
 
 class TemplateAvaliacaoSeeder extends Seeder
@@ -54,10 +55,19 @@ class TemplateAvaliacaoSeeder extends Seeder
                     continue;
                 }
 
+                $evidenciaId = null;
+                if ($questaoBase->indicador_id) {
+                    $evidenciaId = Evidencia::firstOrCreate([
+                        'indicador_id' => $questaoBase->indicador_id,
+                        'descricao'    => 'Evidência padrão',
+                    ])->id;
+                }
+
                 $questao = Questao::updateOrCreate(
                     [
                         'template_avaliacao_id' => $template->id,
                         'indicador_id'          => $questaoBase->indicador_id,
+                        'evidencia_id'          => $evidenciaId,
                         'texto'                 => $questaoBase->texto,
                     ],
                     [

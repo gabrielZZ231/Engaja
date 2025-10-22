@@ -13,6 +13,7 @@ class DatabaseSeeder extends Seeder
         $this->call([
             DimensaoSeeder::class,
             IndicadorSeeder::class,
+            EvidenciaSeeder::class,
             EscalaSeeder::class,
             QuestaoSeeder::class,
             TemplateAvaliacaoSeeder::class,

@@ -5,6 +5,7 @@ namespace Database\Seeders;
 use App\Models\Escala;
 use App\Models\Indicador;
 use App\Models\Questao;
+use App\Models\Evidencia;
 use Illuminate\Database\Seeder;
 
 class QuestaoSeeder extends Seeder
@@ -85,10 +86,19 @@ class QuestaoSeeder extends Seeder
                 $escalaId = $escalas[$questao['escala']] ?? null;
             }
 
+            $evidenciaId = null;
+            if ($indicadorId) {
+                $evidenciaId = Evidencia::firstOrCreate([
+                    'indicador_id' => $indicadorId,
+                    'descricao'    => 'Evidência padrão',
+                ])->id;
+            }
+
             Questao::updateOrCreate(
                 [
                     'template_avaliacao_id' => null,
                     'indicador_id'          => $indicadorId,
+                    'evidencia_id'          => $evidenciaId,
                     'texto'                 => $questao['texto'],
                 ],
                 [
