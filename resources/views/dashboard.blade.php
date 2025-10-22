@@ -86,6 +86,7 @@
                             <th style="min-width:110px;">{!! sort_link('Data','dia') !!}</th>
                             <th style="min-width:80px;">{!! sort_link('Hora','hora') !!}</th>
                             <th>{!! sort_link('Momento','momento') !!}</th>
+                            <th>{!! sort_link('Município','municipio') !!}</th>
                             <th>{!! sort_link('Ação pedagógica','acao') !!}</th>
                             <th class="text-end" style="min-width:90px;">{!! sort_link('Presentes','presentes') !!}</th>
                             <!-- <th class="text-end" style="min-width:90px;">{!! sort_link('Ausentes','ausentes') !!}</th>
@@ -105,6 +106,7 @@
                             <td>{{ $data }}</td>
                             <td>{{ $hora }}</td>
                             <td>{{ $a->descricao ?? 'Momento' }}</td>
+                            <td>{{ $a->municipio?->nome_com_estado ?? '-' }}</td>
                             <td>{{ $a->evento_nome ?? $a->evento->nome ?? '—' }}</td>
 
                             {{-- Gatilho do accordion na coluna Presentes --}}
@@ -125,7 +127,7 @@
 
                         {{-- Linha de detalhes: agora o .collapse fica dentro do TD --}}
                         <tr>
-                            <td colspan="7" class="bg-light p-0">
+                            <td colspan="8" class="bg-light p-0">
                                 <div id="{{ $collapseId }}" class="collapse presentes-collapse">
                                     @if($presentes->isEmpty())
                                     <div class="text-muted small p-3">Nenhuma presença registrada.</div>
@@ -163,7 +165,7 @@
                         </tr>
                         @empty
                         <tr>
-                            <td colspan="7" class="text-center text-muted p-4">Nenhuma atividade encontrada.</td>
+                            <td colspan="8" class="text-center text-muted p-4">Nenhuma atividade encontrada.</td>
                         </tr>
                         @endforelse
                     </tbody>

@@ -6,6 +6,7 @@ use App\Models\Evento;
 use App\Models\Atividade;
 use App\Models\Presenca;
 use App\Models\Participante;
+use App\Models\Municipio;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Http\Request;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
@@ -15,14 +16,22 @@ class AtividadeController extends Controller
     use AuthorizesRequests;
     public function index(Evento $evento)
     {
-        $atividades = $evento->atividades()->orderBy('dia')->orderBy('hora_inicio')->paginate(12);
+        $atividades = $evento->atividades()
+            ->with('municipio.estado')
+            ->orderBy('dia')
+            ->orderBy('hora_inicio')
+            ->paginate(12);
         return view('atividades.index', compact('evento', 'atividades'));
     }
 
     public function create(Evento $evento)
     {
         $this->authorize('update', $evento);
-        return view('atividades.create', compact('evento'));
+        $municipios = Municipio::with('estado')
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'estado_id']);
+
+        return view('atividades.create', compact('evento', 'municipios'));
     }
 
     public function store(Request $request, Evento $evento)
@@ -30,6 +39,7 @@ class AtividadeController extends Controller
         $this->authorize('update', $evento);
 
         $dados = $request->validate([
+            'municipio_id'  => 'required|exists:municipios,id',
             'descricao'     => 'required|string',
             'dia'           => 'required|date',
             'hora_inicio'   => 'required|date_format:H:i',
@@ -48,7 +58,11 @@ class AtividadeController extends Controller
         $evento = $atividade->evento;
         $this->authorize('update', $evento);
 
-        return view('atividades.edit', compact('evento', 'atividade'));
+        $municipios = Municipio::with('estado')
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'estado_id']);
+
+        return view('atividades.edit', compact('evento', 'atividade', 'municipios'));
     }
 
     public function update(Request $request, Atividade $atividade)
@@ -57,6 +71,7 @@ class AtividadeController extends Controller
         $this->authorize('update', $evento);
 
         $dados = $request->validate([
+            'municipio_id'  => 'required|exists:municipios,id',
             'descricao'     => 'required|string',
             'dia'           => 'required|date',
             'hora_inicio'   => 'required|date_format:H:i',
@@ -82,7 +97,7 @@ class AtividadeController extends Controller
 
     public function show(\App\Models\Atividade $atividade)
     {
-        $atividade->load('evento');
+        $atividade->load(['evento', 'municipio.estado']);
 
         $presencas = $atividade->presencas()
             ->with([
@@ -101,7 +116,6 @@ class AtividadeController extends Controller
 
     public function togglePresenca(Atividade $atividade)
     {
-        // Permissão já garantida pela middleware 'permission:presenca.abrir'
         $atividade->presenca_ativa = ! $atividade->presenca_ativa;
         $atividade->save();
 

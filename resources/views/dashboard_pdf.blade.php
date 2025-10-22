@@ -36,7 +36,8 @@
                 <th style="width: 12%;">Data</th>
                 <th style="width: 10%;">Hora</th>
                 <th>Momento</th>
-                <th style="width: 30%;">Ação pedagógica</th>
+                <th style="width: 20%;">Município</th>
+                <th style="width: 25%;">Ação pedagógica</th>
                 <th style="width: 12%;">Presentes</th>
             </tr>
         </thead>
@@ -51,11 +52,12 @@
                     <td>{{ $data }}</td>
                     <td>{{ $hora }}</td>
                     <td>{{ $a->descricao ?? 'Momento' }}</td>
+                    <td>{{ $a->municipio?->nome_com_estado ?? '-' }}</td>
                     <td>{{ $a->evento_nome ?? optional($a->evento)->nome ?? '—' }}</td>
                     <td class="text-right fw-bold">{{ $a->presentes_count }}</td>
                 </tr>
                 <tr>
-                    <td colspan="5">
+                    <td colspan="6">
                         <div class="section-title fw-bold">Presentes</div>
                         @if($presentes->isEmpty())
                             <div class="small muted mb-10">Nenhum presente listado.</div>
@@ -90,7 +92,7 @@
                 </tr>
             @empty
                 <tr>
-                    <td colspan="5" class="muted">Nenhuma atividade encontrada.</td>
+                    <td colspan="6" class="muted">Nenhuma atividade encontrada.</td>
                 </tr>
             @endforelse
         </tbody>
