@@ -10,28 +10,108 @@ use App\Models\TemplateAvaliacao;
 use App\ViewModels\Avaliacao\QuestoesFormViewModel;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Str;
 use Illuminate\Support\Facades\Validator;
 use Illuminate\Validation\Rule;
 use Illuminate\Validation\ValidationException;
-
 use Illuminate\Support\Facades\DB;
 
 class AvaliacaoController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $avaliacoes = Avaliacao::with([
+        $avaliacaoTable = (new Avaliacao())->getTable();
+
+        $query = Avaliacao::query()->with([
             'inscricao.participante.user',
             'inscricao.evento',
             'atividade.evento',
             'templateAvaliacao',
             'respostas.inscricao.participante.user',
             'respostas.inscricao.evento',
-        ])
-            ->orderByDesc('created_at')
-            ->paginate(15);
+        ]);
 
-        return view('avaliacoes.index', compact('avaliacoes'));
+        $searchTerm = trim((string) $request->query('search', ''));
+        if ($searchTerm !== '') {
+            $query->where(function ($nested) use ($searchTerm) {
+                $nested->whereHas('atividade', function ($atividade) use ($searchTerm) {
+                    $atividade->where('descricao', 'like', '%' . $searchTerm . '%')
+                        ->orWhereHas('evento', function ($evento) use ($searchTerm) {
+                            $evento->where('nome', 'like', '%' . $searchTerm . '%');
+                        });
+                })
+                    ->orWhereHas('templateAvaliacao', function ($template) use ($searchTerm) {
+                        $template->where('nome', 'like', '%' . $searchTerm . '%');
+                    })
+                    ->orWhereHas('inscricao.participante.user', function ($usuario) use ($searchTerm) {
+                        $usuario->where('name', 'like', '%' . $searchTerm . '%');
+                    })
+                    ->orWhereHas('inscricao.evento', function ($evento) use ($searchTerm) {
+                        $evento->where('nome', 'like', '%' . $searchTerm . '%');
+                    });
+
+                if (ctype_digit($searchTerm)) {
+                    $nested->orWhere('id', (int) $searchTerm);
+                }
+            });
+        }
+
+        $templateId = $request->query('template_id');
+        if ($templateId) {
+            $query->where('template_avaliacao_id', $templateId);
+        }
+
+        $from = $request->query('de');
+        if ($from) {
+            $query->whereDate("{$avaliacaoTable}.created_at", '>=', $from);
+        }
+
+        $to = $request->query('ate');
+        if ($to) {
+            $query->whereDate("{$avaliacaoTable}.created_at", '<=', $to);
+        }
+
+        $hasRespostas = $request->query('has_respostas');
+        if ($hasRespostas === 'with') {
+            $query->whereHas('respostas');
+        } elseif ($hasRespostas === 'without') {
+            $query->whereDoesntHave('respostas');
+        }
+
+        $sort = $request->query('sort', 'created_at');
+        $directionParam = $request->query('dir', $request->query('direction', 'desc'));
+        $direction = Str::lower((string) $directionParam) === 'asc' ? 'asc' : 'desc';
+
+        if ($sort === 'momento') {
+            $query->orderBy(
+                Atividade::select('dia')
+                    ->whereColumn('atividades.id', "{$avaliacaoTable}.atividade_id"),
+                $direction
+            )->orderBy(
+                Atividade::select('hora_inicio')
+                    ->whereColumn('atividades.id', "{$avaliacaoTable}.atividade_id"),
+                $direction
+            );
+        } elseif ($sort === 'template') {
+            $query->orderBy(
+                TemplateAvaliacao::select('nome')
+                    ->whereColumn('template_avaliacaos.id', "{$avaliacaoTable}.template_avaliacao_id"),
+                $direction
+            );
+        } elseif ($sort === 'created_at') {
+            $query->orderBy("{$avaliacaoTable}.created_at", $direction);
+        } else {
+            $query->orderBy("{$avaliacaoTable}.created_at", 'desc');
+        }
+
+        if ($sort !== 'created_at') {
+            $query->orderBy("{$avaliacaoTable}.created_at", 'desc');
+        }
+
+        $avaliacoes = $query->paginate(15)->appends($request->query());
+        $templatesDisponiveis = TemplateAvaliacao::orderBy('nome')->pluck('nome', 'id');
+
+        return view('avaliacoes.index', compact('avaliacoes', 'templatesDisponiveis'));
     }
 
     public function create(Request $request)
