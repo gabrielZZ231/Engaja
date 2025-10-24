@@ -5,16 +5,49 @@ namespace App\Http\Controllers;
 use App\Models\Indicador;
 use App\Models\Dimensao;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
 
 class IndicadorController extends Controller
 {
-    public function index()
+    public function index(Request $request)
     {
-        $indicadors = Indicador::with('dimensao')
-            ->withCount('questoes')
-            ->orderBy('descricao')
-            ->paginate(15);
-        return view('indicadors.index', compact('indicadors'));
+        $query = Indicador::query()
+            ->with('dimensao')
+            ->withCount('questoes');
+
+        $searchTerm = trim((string) $request->query('search', ''));
+        if ($searchTerm !== '') {
+            $query->where('descricao', 'like', '%' . $searchTerm . '%');
+        }
+
+        $dimensaoId = $request->query('dimensao_id');
+        if ($dimensaoId) {
+            $query->where('dimensao_id', $dimensaoId);
+        }
+
+        $hasQuestoes = $request->query('has_questoes');
+        if ($hasQuestoes === 'with') {
+            $query->whereHas('questoes');
+        } elseif ($hasQuestoes === 'without') {
+            $query->whereDoesntHave('questoes');
+        }
+
+        $sort = $request->query('sort', 'descricao');
+        $directionParam = $request->query('dir', $request->query('direction', 'asc'));
+        $direction = Str::lower((string) $directionParam) === 'desc' ? 'desc' : 'asc';
+
+        if ($sort === 'questoes') {
+            $query->orderBy('questoes_count', $direction);
+        } elseif ($sort === 'dimensao') {
+            $query->orderBy(Dimensao::select('descricao')->whereColumn('dimensaos.id', 'indicadors.dimensao_id'), $direction);
+        } else {
+            $query->orderBy('descricao', $direction);
+        }
+
+        $indicadors = $query->paginate(15)->appends($request->query());
+        $dimensoes = Dimensao::orderBy('descricao')->pluck('descricao', 'id');
+
+        return view('indicadors.index', compact('indicadors', 'dimensoes'));
     }
 
     public function create()

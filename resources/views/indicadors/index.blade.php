@@ -6,14 +6,55 @@
   <a href="{{ route('indicadors.create') }}" class="btn btn-engaja">Novo indicador</a>
 </div>
 
+<form method="GET" action="{{ route('indicadors.index') }}" class="card shadow-sm mb-4">
+  <div class="card-body">
+    <div class="row g-3 align-items-end">
+      <div class="col-lg-4 col-md-5">
+        <label for="search" class="form-label">Buscar por descrição</label>
+        <input type="text" class="form-control" id="search" name="search"
+          value="{{ request('search') }}" placeholder="Digite parte da descrição">
+      </div>
+      <div class="col-lg-3 col-md-4">
+        <label for="dimensao_id" class="form-label">Filtrar por dimensão</label>
+        <select id="dimensao_id" name="dimensao_id" class="form-select">
+          <option value="">Todas</option>
+          @foreach ($dimensoes as $id => $descricao)
+          <option value="{{ $id }}" @selected((string)request('dimensao_id') === (string)$id)>{{ $descricao }}</option>
+          @endforeach
+        </select>
+      </div>
+      <div class="col-3 d-flex gap-2">
+        <input type="hidden" name="sort" value="{{ request('sort', 'descricao') }}">
+        <input type="hidden" name="dir"
+          value="{{ strtolower(request('dir', request('direction', 'asc'))) === 'desc' ? 'desc' : 'asc' }}">
+        <button type="submit" class="btn btn-engaja">Aplicar</button>
+        <a href="{{ route('indicadors.index') }}" class="btn btn-outline-secondary">Limpar</a>
+      </div>
+    </div>
+  </div>
+</form>
+
 <div class="card shadow-sm">
   <div class="table-responsive">
     <table class="table table-hover align-middle mb-0">
       <thead class="table-light">
+        @php
+          function indicador_sort_link($label, $key) {
+            $currentSort = request('sort', 'descricao');
+            $dirParam = request('dir', request('direction', 'asc'));
+            $currentDir = strtolower((string) $dirParam) === 'desc' ? 'desc' : 'asc';
+            $nextDir = ($currentSort === $key && $currentDir === 'asc') ? 'desc' : 'asc';
+            $params = array_merge(request()->except('page'), ['sort' => $key, 'dir' => $nextDir]);
+            $url = request()->url() . '?' . http_build_query($params);
+            $isActive = $currentSort === $key;
+            $arrow = $isActive ? ($currentDir === 'asc' ? '↑' : '↓') : '';
+            return '<a href="' . $url . '" class="text-decoration-none text-nowrap">' . e($label) . ' <span class="text-muted">' . $arrow . '</span></a>';
+          }
+        @endphp
         <tr>
-          <th>Descrição</th>
-          <th>Dimensão</th>
-          <th class="text-center">Qtd. questões</th>
+          <th>{!! indicador_sort_link('Descrição', 'descricao') !!}</th>
+          <th>{!! indicador_sort_link('Dimensão', 'dimensao') !!}</th>
+          <th class="text-center">{!! indicador_sort_link('Qtd. questões', 'questoes') !!}</th>
           <th class="text-end">Ações</th>
         </tr>
       </thead>
