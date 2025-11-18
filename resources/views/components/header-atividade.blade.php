@@ -28,7 +28,7 @@
     @if ($fim)
         <p class="text-muted mb-1">
             🗓️ {{ $dia }} • {{ $inicio->format('H:i') }} – {{ $fim->format('H:i') }}
-            <br><span class="ms-1">⏱️ {{ $duracaoLabel }}</span>
+            <br>⏱️ {{ $duracaoLabel }}
         </p>
     @else
         <p class="text-muted mb-1">
