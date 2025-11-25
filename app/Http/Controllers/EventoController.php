@@ -221,7 +221,7 @@ class EventoController extends Controller
 
             //Auth::login($user);
 
-            return redirect()->route('eventos.show', $evento->id)->with('success', 'Cadastro, inscrição e presença realizados!');
+            return redirect()->route('presenca.confirmar', $atividade->id)->with('success', 'Cadastro realizado com sucesso! Agora você já pode confirmar sua presença abaixo');
         } catch (\Throwable $e) {
             DB::rollBack();
 
