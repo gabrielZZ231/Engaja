@@ -62,11 +62,11 @@
             <div class="list-group list-group-flush">
               @forelse($questoesAgrupadas as $dimensao => $indicadores)
                 <div class="list-group-item px-0">
-                  <h5 class="fw-bold text-engaja mb-2">{{ $dimensao }}</h5>
+                  <h5 class="fw-bold text-engaja mb-2">Dimensão — {{ $dimensao }}</h5>
 
                   @foreach($indicadores as $indicador => $questoes)
                     <div class="mb-2">
-                      <p class="fw-semibold mb-2">{{ $indicador }}</p>
+                      <p class="fw-semibold mb-2">Indicador — {{ $indicador }}</p>
                       <ol class="list-unstyled mb-3">
                         @foreach($questoes as $questao)
                           @php
