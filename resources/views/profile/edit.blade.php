@@ -104,7 +104,7 @@
                                 <label for="cpf" class="form-label">CPF</label>
                                 <input id="cpf" type="text" name="cpf"
                                     inputmode="numeric" autocomplete="off"
-                                    maxlength="14" {{-- 000.000.000-00 --}}
+                                    maxlength="14" required {{-- 000.000.000-00 --}}
                                     value="{{ old('cpf', $participante->cpf ?? '') }}"
                                     class="form-control @error('cpf') is-invalid @enderror"
                                     placeholder="000.000.000-00">
