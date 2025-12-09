@@ -16,6 +16,7 @@ use App\Http\Controllers\QuestaoController;
 use App\Http\Controllers\TemplateAvaliacaoController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\ModeloCertificadoController;
+use App\Http\Controllers\CertificadoController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -79,6 +80,7 @@ Route::middleware(['auth', 'role:administrador|gestor'])
     ->group(function () {
         Route::resource('modelos', ModeloCertificadoController::class)
             ->parameters(['modelos' => 'modelo']);
+        Route::post('emitir', [CertificadoController::class, 'emitir'])->name('emitir');
     });
 
 Route::middleware(['auth', 'role:administrador|gestor'])
