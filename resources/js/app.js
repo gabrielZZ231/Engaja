@@ -4,6 +4,9 @@
 import * as bootstrap from 'bootstrap';
 window.bootstrap = bootstrap;
 
+import * as fabric from 'fabric';
+window.fabric = fabric;
+
 let confirmModalInstance;
 let confirmMessageEl;
 let confirmAcceptBtn;
