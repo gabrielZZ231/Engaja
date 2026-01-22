@@ -402,16 +402,22 @@
                       @endif
                     </div>
                     @hasanyrole('administrador|formador')
-                    <div class="actions d-flex gap-2">
-                      <a href="{{ route('atividades.show', $at) }}" class="btn btn-sm btn-outline-primary">Ver</a>
-                      
-                      <a href="{{ route('atividades.edit', $at) }}" class="btn btn-sm btn-outline-secondary">Editar</a>
+                    <div class="actions d-flex gap-2 flex-shrink-0 align-items-center">
+                      <a href="{{ route('atividades.show', $at) }}" class="btn btn-sm btn-outline-primary">
+                          Ver
+                      </a>
+
+                      <a href="{{ route('atividades.edit', $at) }}" class="btn btn-sm btn-outline-secondary">
+                          Editar
+                      </a>
+
                       <form action="{{ route('atividades.destroy', $at) }}" method="POST"
-                        class="d-inline" data-confirm="Tem certeza que deseja excluir este momento?">
-                        @csrf @method('DELETE')
-                        <button class="btn btn-sm btn-outline-danger">Excluir</button>
+                            class="d-inline m-0 p-0"
+                            data-confirm="Tem certeza que deseja excluir este momento?">
+                          @csrf @method('DELETE')
+                          <button class="btn btn-sm btn-outline-danger">Excluir</button>
                       </form>
-                    </div>
+                  </div>
                     @endhasanyrole
                   </div>
                 </div>
