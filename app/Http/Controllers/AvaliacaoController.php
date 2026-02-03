@@ -381,20 +381,31 @@ class AvaliacaoController extends Controller
         DB::transaction(function () use ($avaliacao, $dados, $template, $customizacoes, $respostas, $questoesAdicionais, $questoesAdicionaisRemovidas) {
             $templateAlterado = $avaliacao->template_avaliacao_id !== $dados['template_avaliacao_id'];
 
+            // Se apenas campos básicos foram alterados (ex.: anônima) e nenhuma
+            // mudança de template/personalização/resposta foi enviada, não
+            // toque nas questões nem nas respostas para evitar perda de dados.
+            $mudouQuestoesOuRespostas = $templateAlterado
+                || !empty($customizacoes)
+                || (is_array($respostas) && count($respostas) > 0)
+                || ($questoesAdicionais && $questoesAdicionais->isNotEmpty())
+                || !empty($questoesAdicionaisRemovidas);
+
             $avaliacao->update($dados);
             $avaliacao->refresh();
 
-            $questoesSincronizadas = $this->sincronizaQuestoesPersonalizadas(
-                $avaliacao,
-                $template->questoes,
-                $customizacoes,
-                $templateAlterado
-            );
+            if ($mudouQuestoesOuRespostas) {
+                $questoesSincronizadas = $this->sincronizaQuestoesPersonalizadas(
+                    $avaliacao,
+                    $template->questoes,
+                    $customizacoes,
+                    $templateAlterado
+                );
 
-            $this->sincronizaQuestoesAdicionais($avaliacao, $questoesAdicionais, $questoesAdicionaisRemovidas);
+                $this->sincronizaQuestoesAdicionais($avaliacao, $questoesAdicionais, $questoesAdicionaisRemovidas);
 
-            if (is_array($respostas)) {
-                $this->sincronizaRespostas($avaliacao, $respostas, $questoesSincronizadas);
+                if (is_array($respostas)) {
+                    $this->sincronizaRespostas($avaliacao, $respostas, $questoesSincronizadas);
+                }
             }
         });
 
@@ -417,8 +428,6 @@ class AvaliacaoController extends Controller
         array $respostas,
         ?Collection $questoesAtualizadas = null
     ): void {
-        $avaliacao->respostas()->delete();
-
         $questoes = $questoesAtualizadas ?? $avaliacao->avaliacaoQuestoes()->get();
         $inscricaoParaResposta = $avaliacao->inscricao_id;
 
@@ -430,11 +439,18 @@ class AvaliacaoController extends Controller
                 continue;
             }
 
-            $avaliacao->respostas()->create([
-                'avaliacao_questao_id' => $questao->id,
-                'inscricao_id'        => $inscricaoParaResposta,
-                'resposta'             => is_array($valor) ? json_encode($valor) : $valor,
-            ]);
+            $jaExiste = RespostaAvaliacao::where('avaliacao_id', $avaliacao->id)
+                ->where('avaliacao_questao_id', $questao->id)
+                ->where('inscricao_id', $inscricaoParaResposta)
+                ->exists();
+
+            if (! $jaExiste) {
+                $avaliacao->respostas()->create([
+                    'avaliacao_questao_id' => $questao->id,
+                    'inscricao_id'         => $inscricaoParaResposta,
+                    'resposta'             => is_array($valor) ? json_encode($valor) : $valor,
+                ]);
+            }
         }
     }
 
@@ -592,12 +608,14 @@ class AvaliacaoController extends Controller
             'atividade_id'          => ['required', Rule::exists('atividades', 'id')],
             'template_avaliacao_id' => ['required', Rule::exists('template_avaliacaos', 'id')],
             'respostas'             => ['nullable', 'array'],
+            'anonima'               => ['sometimes', 'boolean'],
         ]);
 
         return [
             'inscricao_id'          => $dados['inscricao_id'] ?? null,
             'atividade_id'          => $dados['atividade_id'],
             'template_avaliacao_id' => $dados['template_avaliacao_id'],
+            'anonima'               => (bool) ($dados['anonima'] ?? false),
         ];
     }
 
@@ -816,6 +834,18 @@ class AvaliacaoController extends Controller
                 ->withErrors(['avaliacao' => 'Voce ja respondeu este formulario.']);
         }
 
+        if (! $avaliacao->anonima) {
+            $jaEnviou = SubmissaoAvaliacao::where('avaliacao_id', $avaliacao->id)
+                ->where('presenca_id', $presenca->id)
+                ->exists();
+
+            if ($jaEnviou) {
+                return redirect()
+                    ->route('avaliacao.formulario', ['avaliacao' => $avaliacao->id, 'token' => $token])
+                    ->withErrors(['avaliacao' => 'Voce ja respondeu este formulario.']);
+            }
+        }
+
         $rules = [];
         foreach ($avaliacao->avaliacaoQuestoes as $questao) {
             $rules["respostas.{$questao->id}"] = $this->regraRespostaParaQuestao($questao);
@@ -829,6 +859,7 @@ class AvaliacaoController extends Controller
                 'codigo' => (string) Str::ulid(),
                 'atividade_id' => $avaliacao->atividade_id,
                 'avaliacao_id' => $avaliacao->id,
+                'presenca_id' => $avaliacao->anonima ? null : $presenca->id,
             ]);
 
             foreach ($avaliacao->avaliacaoQuestoes as $questao) {
