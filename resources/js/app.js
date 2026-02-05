@@ -2,7 +2,10 @@
 
 // import bundle com Popper e exporta classes Bootstrap
 import * as bootstrap from 'bootstrap';
+import { initResponsesChart } from './bi/dashboard';
+
 window.bootstrap = bootstrap;
+window.initResponsesChart = initResponsesChart;
 
 // Carrega Fabric.js apenas nas telas que têm o canvas de certificado
 const loadFabricIfNeeded = () => {
