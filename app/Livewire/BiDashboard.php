@@ -5,6 +5,8 @@ namespace App\Livewire;
 use Livewire\Component;
 use App\Services\BI\KpiService;
 use App\Services\BI\ResponsesService;
+use App\Services\BI\AnalfabetismoService;
+
 
 class BiDashboard extends Component
 {
@@ -15,6 +17,7 @@ class BiDashboard extends Component
         return view('livewire.bi-dashboard', [
             'kpis' => KpiService::overview($this->period),
             'chartData' => ResponsesService::byDay($this->period),
+            'analfabetismoChart' => AnalfabetismoService::taxaPorMunicipio(),
         ]);
     }
 

@@ -65,21 +65,29 @@
         </div>
     </div>
 
+    <div class="card shadow-sm mt-4">
+        <div class="card-body">
+            <h2 class="h6 mb-3">
+                Taxa de analfabetismo por município (%)
+            </h2>
+
+            <div id="analfabetismoChart" style="height: 350px;"></div>
+        </div>
+    </div>
+
+
 </div>
 
 @push('scripts')
     <script>
-        document.addEventListener('livewire:load', () => {
-            window.initResponsesChart({
-                labels: [],
-                series: []
-            });
-
+        document.addEventListener('livewire:init', () => {
             window.initResponsesChart(@json($chartData));
+            window.initAnalfabetismoChart(@json($analfabetismoChart));
         });
 
         Livewire.on('refreshChart', (data) => {
             window.initResponsesChart(data);
+            window.initAnalfabetismoChart(@json($analfabetismoChart));
         });
     </script>
 @endpush
