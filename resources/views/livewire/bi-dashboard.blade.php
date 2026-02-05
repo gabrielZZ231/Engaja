@@ -8,9 +8,9 @@
 
         {{-- Filtro de período (futuro) --}}
         <div>
-            <select class="form-select form-select-sm">
+            <select class="form-select form-select-sm" wire:model.live="period">
                 <option value="7">Últimos 7 dias</option>
-                <option value="30" selected>Últimos 30 dias</option>
+                <option value="30">Últimos 30 dias</option>
                 <option value="90">Últimos 90 dias</option>
             </select>
         </div>
@@ -24,7 +24,7 @@
                 <div class="card-body">
                     <div class="text-muted small">Pesquisas</div>
                     <div class="fs-3 fw-bold text-engaja">
-                        0
+                        {{ $kpis['surveys'] }}
                     </div>
                 </div>
             </div>
@@ -35,7 +35,7 @@
                 <div class="card-body">
                     <div class="text-muted small">Respostas</div>
                     <div class="fs-3 fw-bold text-engaja">
-                        0
+                        {{ $kpis['responses'] }}
                     </div>
                 </div>
             </div>
@@ -46,7 +46,7 @@
                 <div class="card-body">
                     <div class="text-muted small">Última resposta</div>
                     <div class="fw-semibold">
-                        —
+                        {{ $kpis['last_response']?->format('d/m/Y H:i') ?? '—' }}
                     </div>
                 </div>
             </div>
@@ -74,6 +74,12 @@
                 labels: [],
                 series: []
             });
+
+            window.initResponsesChart(@json($chartData));
+        });
+
+        Livewire.on('refreshChart', (data) => {
+            window.initResponsesChart(data);
         });
     </script>
 @endpush
