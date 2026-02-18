@@ -108,6 +108,7 @@ Route::middleware(['auth', 'role:administrador|gestor'])
         Route::get('{managedUser}/editar', [UserManagementController::class, 'edit'])->name('edit');
         Route::put('{managedUser}', [UserManagementController::class, 'update'])->name('update');
         Route::post('certificados/emitir', [CertificadoController::class, 'emitirPorParticipantes'])->name('certificados.emitir');
+        Route::get('exportar', [UserManagementController::class, 'export'])->name('export');
     });
 
 Route::middleware(['auth', 'role:administrador|formador'])
