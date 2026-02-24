@@ -2,10 +2,12 @@
 
 namespace App\Repositories;
 
+use App\Models\BiDimensao;
 use App\Models\BiIndicador;
 use App\Models\BiValor;
 use Closure;
 use Illuminate\Support\Facades\Cache;
+use Illuminate\Support\Facades\DB;
 
 class BiValorRepository
 {
@@ -50,6 +52,53 @@ class BiValorRepository
         });
     }
 
+    public function distribuicaoPorDimensao(string $codigoIndicador, int $ano, string $codigoDimensao): array
+    {
+        return $this->setCache('distribuicaoPorDimensao', [
+            'codigoIndicador' => $codigoIndicador,
+            'ano' => $ano,
+            'codigoDimensao' => $codigoDimensao,
+        ], function () use ($codigoIndicador, $ano, $codigoDimensao) {
+            $indicador = BiIndicador::where('codigo', $codigoIndicador)->firstOrFail();
+            $dimensao = BiDimensao::where('codigo', $codigoDimensao)->firstOrFail();
+
+            $dados = BiValor::query()
+                ->join('bi_dimensao_valores', 'bi_dimensao_valores.id', '=', 'bi_valores.dimensao_valor_id')
+                ->where('bi_valores.indicador_id', $indicador->id)
+                ->where('bi_valores.ano', $ano)
+                ->where('bi_dimensao_valores.dimensao_id', $dimensao->id)
+                ->whereNotNull('bi_valores.valor')
+                ->groupBy('bi_dimensao_valores.codigo')
+                ->orderByDesc(DB::raw('SUM(bi_valores.valor)'))
+                ->get([
+                    'bi_dimensao_valores.codigo as codigo',
+                    DB::raw('SUM(bi_valores.valor) as total'),
+                ])
+                ->map(fn ($item) => [
+                    'label' => $this->formatarDimensaoValor($dimensao->codigo, (string) $item->codigo),
+                    'codigo' => (string) $item->codigo,
+                    'valor' => (float) $item->total,
+                ])
+                ->values();
+
+            $somaTotal = (float) $dados->sum('valor');
+
+            $dados = $dados->map(function (array $item) use ($somaTotal) {
+                $item['percentual'] = $somaTotal > 0
+                    ? round(($item['valor'] / $somaTotal) * 100, 2)
+                    : 0.0;
+
+                return $item;
+            })->all();
+
+            return [
+                'tipo_valor' => $indicador->tipo_valor,
+                'dimensao' => $dimensao->codigo,
+                'dados' => $dados,
+            ];
+        });
+    }
+
     protected function setCache(string $method, array $params, Closure $callback)
     {
         $paramString = collect($params)
@@ -82,5 +131,28 @@ class BiValorRepository
     protected function supportsCacheTags(): bool
     {
         return method_exists(Cache::getStore(), 'tags');
+    }
+
+    protected function formatarDimensaoValor(string $codigoDimensao, string $codigoValor): string
+    {
+        $mapa = [
+            'SEXO' => [
+                'MAS' => 'Masculino',
+                'FEM' => 'Feminino',
+            ],
+            'RACA' => [
+                'BRANCA' => 'Branca',
+                'PRETA' => 'Preta',
+                'PARDA' => 'Parda',
+                'INDIGENA' => 'Indigena',
+            ],
+            'RESIDENCIA' => [
+                'RURAL' => 'Rural',
+                'URBANA' => 'Urbana',
+                'FAVELA' => 'Favela',
+            ],
+        ];
+
+        return $mapa[$codigoDimensao][$codigoValor] ?? $codigoValor;
     }
 }

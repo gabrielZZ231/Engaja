@@ -42,6 +42,39 @@
     @else
         @php($tituloGrafico = "Ranking de taxa de analfabetismo por municipios ({$ano})")
         <livewire:graficos.ranking-municipios :indicador="$indicador" :ano="$ano" :titulo="$tituloGrafico" />
+
+        <div class="row g-3 mt-1">
+            <div class="col-lg-4">
+                <livewire:graficos.distribuicao-dimensao
+                    :indicador="'ANALFABETISMO_QTDE'"
+                    :ano="$ano"
+                    :dimensao="'SEXO'"
+                    :titulo="'Distribuicao por sexo'"
+                    :tipo-grafico="'donut'"
+                    :key="'dimensao-sexo-'.$ano" />
+            </div>
+            <div class="col-lg-4">
+                <livewire:graficos.distribuicao-dimensao
+                    :indicador="'ANALFABETISMO_QTDE'"
+                    :ano="$ano"
+                    :dimensao="'RACA'"
+                    :titulo="'Distribuicao por raca'"
+                    :tipo-grafico="'polarArea'"
+                    :key="'dimensao-raca-'.$ano" />
+            </div>
+            <div class="col-lg-4">
+                <livewire:graficos.distribuicao-dimensao
+                    :indicador="'ANALFABETISMO_QTDE'"
+                    :ano="$ano"
+                    :dimensao="'RESIDENCIA'"
+                    :titulo="'Distribuicao por residencia'"
+                    :tipo-grafico="'bar'"
+                    :mostrar-valores="false"
+                    :usar-percentual="true"
+                    :casas-decimais-percentual="0"
+                    :key="'dimensao-residencia-'.$ano" />
+            </div>
+        </div>
     @endif
 
     <div class="row g-3 mt-1">

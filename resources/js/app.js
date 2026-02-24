@@ -1,6 +1,7 @@
 ﻿import "./bootstrap";
 import "../css/graficos.css";
 import "./graficos-ranking-municipios";
+import "./graficos-distribuicao-dimensoes";
 
 // import bundle com Popper e exporta classes Bootstrap
 import * as bootstrap from "bootstrap";

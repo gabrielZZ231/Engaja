@@ -36,7 +36,7 @@ export function getGraficoPadraoConfig({
         plotOptions: {
             bar: {
                 horizontal: horizontal,
-                borderRadius: 12,
+                borderRadius: 6,
                 barHeight: "80%",
             },
         },
@@ -61,11 +61,21 @@ export function getGraficoPadraoConfig({
         dataLabels: {
             enabled: true,
             formatter: (val) => formatarValor(val),
+            offsetX: 6,
             style: {
-                colors: ["#bbb"],
+                colors: [cor],
                 fontSize: "15px",
                 fontWeight: 700,
                 fontFamily: "Montserrat, sans-serif",
+            },
+            background: {
+                enabled: true,
+                foreColor: "#ffffff",
+                borderRadius: 6,
+                padding: 5,
+                opacity: 0.96,
+                borderWidth: 1,
+                borderColor: "#2f1432",
             },
         },
         grid: {
