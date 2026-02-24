@@ -9,7 +9,11 @@ export function getGraficoPadraoConfig({
     altura = 500,
     tipo = "bar",
     horizontal = true,
-    nomeSerie = "Valor (%)",
+    nomeSerie = "Valor",
+    formatarValor = (valor) => {
+        const numero = Number(valor);
+        return Number.isFinite(numero) ? numero.toFixed(2) : "-";
+    },
 } = {}) {
     return {
         chart: {
@@ -51,16 +55,12 @@ export function getGraficoPadraoConfig({
         colors: [cor],
         tooltip: {
             y: {
-                formatter: function (val) {
-                    return val.toFixed(2) + "%";
-                },
+                formatter: (val) => formatarValor(val),
             },
         },
         dataLabels: {
             enabled: true,
-            formatter: function (val) {
-                return val.toFixed(2) + "%";
-            },
+            formatter: (val) => formatarValor(val),
             style: {
                 colors: ["#bbb"],
                 fontSize: "15px",

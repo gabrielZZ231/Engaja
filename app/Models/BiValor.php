@@ -17,6 +17,11 @@ class BiValor extends Model
         'dimensao_valor_id'
     ];
 
+    protected $casts = [
+        'valor' => 'float',
+        'ano' => 'integer',
+    ];
+
     public function indicador()
     {
         return $this->belongsTo(BiIndicador::class, 'indicador_id');

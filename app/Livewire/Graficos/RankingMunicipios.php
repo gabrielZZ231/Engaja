@@ -11,12 +11,14 @@ class RankingMunicipios extends Component
     public array $dados = [];
     public int $ano;
     public string $indicador;
-    public string $titulo;
+    public string $titulo = 'Ranking de Municipios';
+    public string $tipoValor = 'PERCENTUAL';
 
-    public function mount(BiValorRepository $repository)
+    public function mount(BiValorRepository $repository): void
     {
         $resultado = $repository->rankingMunicipios($this->indicador, $this->ano);
-        $this->dados = $resultado['dados'];
+        $this->dados = $resultado['dados'] ?? [];
+        $this->tipoValor = $resultado['tipo_valor'] ?? 'PERCENTUAL';
     }
 
     public function render()
