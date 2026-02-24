@@ -142,7 +142,7 @@ class UserManagementRequest extends FormRequest
 
     private function assignableRoleNames(): array
     {
-        return Role::whereNotIn('name', ['administrador', 'gerente', 'eq_pedagogica', 'articulador', 'participante'])
+        return Role::whereNotIn('name', ['administrador'])
             ->pluck('name')
             ->toArray();
     }

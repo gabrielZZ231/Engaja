@@ -21,13 +21,13 @@
         </li>
         @endcan
 
-        @role('administrador')
+        @hasanyrole('administrador|gerente')
         <li class="nav-item">
           <a class="nav-link text-white" href="{{ route('dashboard') }}">
             Dashboards
           </a>
         </li>
-        @endrole
+        @endhasanyrole
 
         @hasanyrole('administrador|gerente|eq_pedagogica|articulador')
         <li class="nav-item dropdown">

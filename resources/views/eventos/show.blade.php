@@ -232,10 +232,12 @@
         </a>
         @endcan
 
+        @role('administrador|gerente')
         <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
           data-bs-target="#modalRelatoriosEvento">
           Relatórios
         </button>
+        @endrole
 
         @can('update', $evento)
         <a href="{{ route('eventos.edit', $evento) }}" class="btn btn-outline-secondary">Editar</a>
@@ -448,7 +450,7 @@
   </div>
 
 </div>
-@hasanyrole('administrador|formador')
+@hasanyrole('administrador|gerente')
 <div class="modal fade" id="modalRelatoriosEvento" tabindex="-1" aria-labelledby="modalRelatoriosEventoLabel"
   aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
