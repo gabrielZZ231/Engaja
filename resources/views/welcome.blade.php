@@ -52,8 +52,6 @@
                 </div>
             </div>
         </div>
-
-        <livewire:graficos.ranking-municipios :indicador="'ANALFABETISMO_TAXA'" :ano="2025" :titulo="'Ranking de Analfabetismo por Municípios'" />
     </div>
 
     <!-- <footer class="text-center text-muted mt-5">

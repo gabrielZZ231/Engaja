@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use App\Models\Atividade;
+use App\Models\BiValor;
 use App\Models\Evento;
 use App\Models\Inscricao;
 use App\Models\Municipio;
@@ -28,6 +29,28 @@ class DashboardController extends Controller
         $eventosRecentes = Evento::orderByDesc('created_at')->limit(4)->get();
 
         return view('dashboards.home', compact('resumo', 'templatesDisponiveis', 'eventosRecentes'));
+    }
+
+    public function bi(Request $request)
+    {
+        $anosDisponiveis = BiValor::query()
+            ->select('ano')
+            ->distinct()
+            ->orderByDesc('ano')
+            ->pluck('ano')
+            ->map(fn ($ano) => (int) $ano)
+            ->values();
+
+        $anoPadrao = $anosDisponiveis->first() ?? (int) now()->year;
+        $ano = $request->integer('ano', $anoPadrao);
+
+        if (!$anosDisponiveis->contains($ano)) {
+            $ano = $anoPadrao;
+        }
+
+        $indicador = 'ANALFABETISMO_TAXA';
+
+        return view('dashboards.bi', compact('ano', 'indicador', 'anosDisponiveis'));
     }
 
     public function index(Request $request)

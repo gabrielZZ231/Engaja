@@ -9,6 +9,9 @@
         <h1 class="h4 fw-bold mb-1" style="color:#421944;">Escolha o painel</h1>
       </div>
       <div class="d-flex flex-wrap gap-2">
+        <a class="btn btn-outline-secondary" href="{{ route('dashboards.bi') }}">
+          BI educacional
+        </a>
         <a class="btn btn-outline-primary" href="{{ route('dashboards.avaliacoes') }}">
           Respostas de formularios
         </a>
@@ -20,7 +23,7 @@
   </div>
 
   <div class="row g-3 mb-4">
-    <div class="col-md-6">
+    <div class="col-lg-4">
       <div class="card h-100 shadow-sm border-0">
         <div class="card-body">
           <div class="d-flex align-items-start justify-content-between">
@@ -39,7 +42,7 @@
         </div>
       </div>
     </div>
-    <div class="col-md-6">
+    <div class="col-lg-4">
       <div class="card h-100 shadow-sm border-0">
         <div class="card-body">
           <div class="d-flex align-items-start justify-content-between">
@@ -52,6 +55,24 @@
               </p>
               <a href="{{ route('dashboards.presencas') }}" class="btn btn-success">
                 Abrir dashboard de presencas
+              </a>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="col-lg-4">
+      <div class="card h-100 shadow-sm border-0">
+        <div class="card-body">
+          <div class="d-flex align-items-start justify-content-between">
+            <div>
+              <p class="text-uppercase small fw-semibold mb-1" style="color:#421944;">BI</p>
+              <h2 class="h5 fw-bold">Painel de indicadores educacionais</h2>
+              <p class="text-muted mb-3">
+                Acompanhe o ranking de taxa de analfabetismo por municipio e amplie com novos graficos BI.
+              </p>
+              <a href="{{ route('dashboards.bi') }}" class="btn btn-outline-secondary">
+                Abrir dashboard BI
               </a>
             </div>
           </div>
