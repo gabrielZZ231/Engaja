@@ -10,13 +10,13 @@
       </div>
       <div class="d-flex flex-wrap gap-2">
         <a class="btn btn-outline-secondary" href="{{ route('dashboards.bi') }}">
-          BI educacional
+          BI Educacional
         </a>
         <a class="btn btn-outline-primary" href="{{ route('dashboards.avaliacoes') }}">
-          Respostas de formularios
+          Respostas de formulários
         </a>
         <a class="btn btn-primary" href="{{ route('dashboards.presencas') }}">
-          Presencas e inscricoes
+          Presenças e inscrições
         </a>
       </div>
     </div>
@@ -29,10 +29,10 @@
           <div class="d-flex align-items-start justify-content-between">
             <div>
               <p class="text-uppercase text-primary small fw-semibold mb-1">Respostas</p>
-              <h2 class="h5 fw-bold">Painel estilo Forms</h2>
+              <h2 class="h5 fw-bold">Painel de formulários</h2>
               <p class="text-muted mb-3">
-                Veja medias, distribuicoes e respostas abertas com graficos dinamicos.
-                Troque de modelo, ação pedagógica ou periodo.
+                Acompanhe médias, distribuições e respostas abertas com gráficos dinâmicos.
+                Filtre por modelo, ação pedagógica ou período.
               </p>
               <a href="{{ route('dashboards.avaliacoes') }}" class="btn btn-primary">
                 Abrir dashboard de respostas
@@ -47,14 +47,14 @@
         <div class="card-body">
           <div class="d-flex align-items-start justify-content-between">
             <div>
-              <p class="text-uppercase text-success small fw-semibold mb-1">Presenca</p>
-              <h2 class="h5 fw-bold">Painel de presencas e inscricoes</h2>
+              <p class="text-uppercase text-success small fw-semibold mb-1">Presença</p>
+              <h2 class="h5 fw-bold">Painel de presenças e inscrições</h2>
               <p class="text-muted mb-3">
-                Continue acompanhando presencas e inscritos por acao pedagogica
-                com filtros, expansao de linhas e exportacao em PDF.
+                Acompanhe presenças e inscritos por ação pedagógica,
+                com filtros, expansão de linhas e exportação em PDF.
               </p>
               <a href="{{ route('dashboards.presencas') }}" class="btn btn-success">
-                Abrir dashboard de presencas
+                Abrir dashboard de presenças
               </a>
             </div>
           </div>
@@ -69,7 +69,7 @@
               <p class="text-uppercase small fw-semibold mb-1" style="color:#421944;">BI</p>
               <h2 class="h5 fw-bold">Painel de indicadores educacionais</h2>
               <p class="text-muted mb-3">
-                Acompanhe o ranking de taxa de analfabetismo por municipio e amplie com novos graficos BI.
+                Acompanhe rankings e recortes por município para apoiar análises e decisões.
               </p>
               <a href="{{ route('dashboards.bi') }}" class="btn btn-secondary">
                 Abrir dashboard BI
@@ -87,8 +87,8 @@
         <div class="card-header bg-white border-0">
           <div class="d-flex justify-content-between align-items-center">
             <div>
-              <p class="text-uppercase small text-muted mb-0">Modelos de formulario</p>
-              <h3 class="h6 fw-bold mb-0">Ultimos utilizados</h3>
+              <p class="text-uppercase small text-muted mb-0">Modelos de formulário</p>
+              <h3 class="h6 fw-bold mb-0">Últimos utilizados</h3>
             </div>
           </div>
         </div>
@@ -112,7 +112,7 @@
       <div class="card shadow-sm border-0 h-100">
         <div class="card-header bg-white border-0">
           <p class="text-uppercase small text-muted mb-0">Ações pedagógicas recentes</p>
-          <h3 class="h6 fw-bold mb-0">O que recebeu inscricoes</h3>
+          <h3 class="h6 fw-bold mb-0">O que recebeu inscrições</h3>
         </div>
         <div class="card-body">
           <div class="vstack gap-3">
@@ -125,7 +125,7 @@
               <a href="{{ route('eventos.show', $evento) }}" class="btn btn-sm btn-outline-secondary">Ver ação</a>
             </div>
             @empty
-            <div class="text-muted">Nenhuma ação pedagógica registrado.</div>
+            <div class="text-muted">Nenhuma ação pedagógica registrada.</div>
             @endforelse
           </div>
         </div>

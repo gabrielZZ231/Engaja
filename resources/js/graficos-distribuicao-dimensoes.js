@@ -57,7 +57,7 @@ const parseDados = (dadosBrutos) => {
             }))
             .filter((item) => item.label && item.valor >= 0);
     } catch (error) {
-        console.error("Erro ao processar dados de dimensao:", error);
+        console.error("Erro ao processar dados de dimensão:", error);
         return [];
     }
 };
@@ -73,7 +73,7 @@ const limparGraficosOrfaos = () => {
 
 const getSerieNome = (tipoValor, usarPercentual) =>
     usarPercentual || tipoValor === "PERCENTUAL"
-        ? "Participacao (%)"
+        ? "Participação (%)"
         : "Quantidade";
 
 const getFormatadorValor = (tipoValor, usarPercentual, casasDecimais = 2) => {
@@ -280,7 +280,7 @@ const renderizarGrafico = (elemento) => {
         return;
     }
 
-    const titulo = elemento.dataset.titulo?.trim() || "Distribuicao por dimensao";
+    const titulo = elemento.dataset.titulo?.trim() || "Distribuição por dimensão";
     const tipoValor = (elemento.dataset.tipoValor || "ABSOLUTO").toUpperCase();
     const tipoGrafico = (elemento.dataset.tipoGrafico || "donut").toLowerCase();
     const mostrarValores = isTruthyData(elemento.dataset.mostrarValores ?? "1");

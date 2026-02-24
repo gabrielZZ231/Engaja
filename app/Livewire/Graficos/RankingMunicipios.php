@@ -13,7 +13,7 @@ class RankingMunicipios extends Component
     public ?string $indicador = null;
     public ?string $indicadorPercentual = null;
     public ?string $indicadorAbsoluto = null;
-    public string $titulo = 'Ranking de Municipios';
+    public string $titulo = 'Ranking de Municípios';
     public string $tipoValor = 'PERCENTUAL';
     public string $labelIndicadorPercentual = 'Taxa';
     public string $labelIndicadorAbsoluto = 'Quantidade';

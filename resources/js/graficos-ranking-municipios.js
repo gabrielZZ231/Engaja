@@ -56,7 +56,7 @@ const parseDados = (dadosBrutos) => {
                     (item.percentual !== null || item.valor !== null)
             );
     } catch (error) {
-        console.error("Erro ao processar dados do grafico de ranking:", error);
+        console.error("Erro ao processar dados do gráfico de ranking:", error);
         return [];
     }
 };
@@ -83,7 +83,7 @@ const renderizarGrafico = (elemento) => {
         return;
     }
 
-    const titulo = elemento.dataset.titulo?.trim() || "Ranking de Municipios";
+    const titulo = elemento.dataset.titulo?.trim() || "Ranking de Municípios";
     const tipoValor = (elemento.dataset.tipoValor || "PERCENTUAL").toUpperCase();
     const labelIndicadorPercentual =
         elemento.dataset.labelIndicadorPercentual?.trim() || "Taxa";

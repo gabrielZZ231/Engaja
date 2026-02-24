@@ -6,7 +6,7 @@
     <div wire:loading.remove>
         @if (empty($dados))
             <div class="alert alert-warning text-center my-4">
-                Nenhum dado disponivel para este grafico de dimensao.
+                Nenhum dado disponível para este gráfico de dimensão.
             </div>
         @else
             <div class="card-grafico-bi card-grafico-bi-dimensao"

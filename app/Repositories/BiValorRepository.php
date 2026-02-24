@@ -251,7 +251,7 @@ class BiValorRepository
                 'BRANCA' => 'Branca',
                 'PRETA' => 'Preta',
                 'PARDA' => 'Parda',
-                'INDIGENA' => 'Indigena',
+                'INDIGENA' => 'Indígena',
             ],
             'RESIDENCIA' => [
                 'RURAL' => 'Rural',
@@ -269,7 +269,7 @@ class BiValorRepository
             'ANALFABETISMO_TAXA' => 'Taxa de analfabetismo',
             'ANALFABETISMO_QTDE' => 'Quantidade de analfabetos',
             'EJA_ACESSO_TAXA' => 'Taxa de acesso EJA',
-            'EJA_MATRICULAS_QTDE' => 'Matriculas EJA',
+            'EJA_MATRICULAS_QTDE' => 'Matrículas EJA',
         ];
 
         return $mapa[$codigoIndicador] ?? str_replace('_', ' ', $codigoIndicador);
