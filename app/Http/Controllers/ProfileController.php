@@ -59,30 +59,39 @@ class ProfileController extends Controller
         }
 
         $eventoId = $request->input('evento_id');
-        $dataDe = $request->input('data_de');
-        $dataAte = $request->input('data_ate');
-        $busca = $request->input('busca');
+        $dataDe   = $request->input('data_de');
+        $dataAte  = $request->input('data_ate');
+        $busca    = $request->input('busca');
 
         $inscricoes = Inscricao::where('participante_id', $participante->id)
             ->whereNull('deleted_at')
             ->get()
             ->keyBy('atividade_id');
 
-        $eventos = $inscricoes->pluck('evento')->unique('id')->filter();
+        $atividadeIds = $inscricoes->keys(); 
+
+        $eventos = Inscricao::where('participante_id', $participante->id)
+            ->whereNull('deleted_at')
+            ->with('evento')
+            ->get()
+            ->pluck('evento')
+            ->unique('id')
+            ->filter()
+            ->values();
 
         $atividadesQuery = Atividade::query()
-            ->whereIn('evento_id', $eventos->pluck('id'))
+            ->whereIn('id', $atividadeIds)           
             ->with([
                 'evento',
-                'presencas' => fn($q) => $q->whereIn('inscricao_id', $inscricoes->pluck('id'))
+                'presencas' => fn($q) => $q->whereIn('inscricao_id', $inscricoes->pluck('id')),
             ]);
 
         $atividadesQuery->when($eventoId, fn($q) => $q->where('evento_id', $eventoId));
-        $atividadesQuery->when($dataDe, fn($q) => $q->where('dia', '>=', $dataDe));
-        $atividadesQuery->when($dataAte, fn($q) => $q->where('dia', '<=', $dataAte));
+        $atividadesQuery->when($dataDe,   fn($q) => $q->where('dia', '>=', $dataDe));
+        $atividadesQuery->when($dataAte,  fn($q) => $q->where('dia', '<=', $dataAte));
         $atividadesQuery->when($busca, function($q) use ($busca) {
             $q->where('descricao', 'ilike', "%$busca%")
-            ->orWhereHas('evento', fn($queryEvento) => $queryEvento->where('nome', 'ilike', "%$busca%"));
+            ->orWhereHas('evento', fn($qe) => $qe->where('nome', 'ilike', "%$busca%"));
         });
 
         $atividades = $atividadesQuery
@@ -90,30 +99,32 @@ class ProfileController extends Controller
             ->orderBy('hora_inicio')
             ->get();
 
-        $dados = $atividades->map(function($atividade) use ($inscricoes) {
+        $dados = $atividades->map(function ($atividade) use ($inscricoes) {
             $inscricao = $inscricoes->get($atividade->id);
-            $presente = $atividade->presencas->where('inscricao_id', optional($inscricao)->id)->isNotEmpty();
+            $presente  = $atividade->presencas
+                ->where('inscricao_id', optional($inscricao)->id)
+                ->isNotEmpty();
+
             return [
-                'data' => $atividade->dia,
-                'hora' => $atividade->hora_inicio,
-                'momento' => $atividade->nome ?? $atividade->descricao,
-                'evento' => $atividade->evento->nome ?? '',
-                'status' => $presente ? 'Presente' : 'Ausente',
+                'data'    => $atividade->dia,
+                'hora'    => $atividade->hora_inicio,
+                'momento' => $atividade->descricao,
+                'evento'  => $atividade->evento->nome ?? '',
+                'status'  => $presente ? 'Presente' : 'Ausente',
             ];
         });
 
         return view('profile.presencas', [
             'atividades' => $dados,
-            'eventos' => $eventos,
-            'filtros' => [
+            'eventos'    => $eventos,
+            'filtros'    => [
                 'evento_id' => $eventoId,
-                'data_de' => $dataDe,
-                'data_ate' => $dataAte,
-                'busca' => $busca,
-            ]
+                'data_de'   => $dataDe,
+                'data_ate'  => $dataAte,
+                'busca'     => $busca,
+            ],
         ]);
-    }    
-
+    }
     /**
      * Update the user's profile information + participante.
      */

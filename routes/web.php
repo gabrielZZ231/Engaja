@@ -17,6 +17,7 @@ use App\Http\Controllers\TemplateAvaliacaoController;
 use App\Http\Controllers\UserManagementController;
 use App\Http\Controllers\ModeloCertificadoController;
 use App\Http\Controllers\CertificadoController;
+use App\Http\Controllers\AvaliacaoAtividadeController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -111,9 +112,19 @@ Route::middleware(['auth', 'role:administrador|gestor'])
         Route::get('exportar', [UserManagementController::class, 'export'])->name('export');
     });
 
-Route::middleware(['auth', 'role:administrador|formador'])
-    ->get('/eventos/{evento}/relatorios', [EventoController::class, 'relatorios'])
-    ->name('eventos.relatorios');
+Route::middleware(['auth', 'role:administrador|formador'])->group(function () {
+        Route::get('/eventos/{evento}/relatorios', [EventoController::class, 'relatorios'])
+        ->name('eventos.relatorios');
+    Route::controller(AvaliacaoAtividadeController::class)
+        ->prefix('atividades/{atividade}/relatorio')
+        ->name('avaliacao-atividade.')
+        ->group(function () {
+            Route::get('/create', 'create')->name('create');
+            Route::post('/', 'store')->name('store');
+            Route::get('/edit', 'edit')->name('edit');
+            Route::put('/', 'update')->name('update');
+        });
+});
 
 Route::middleware(['auth', 'role:administrador|participante'])->group(function () {
     Route::resource('eventos', EventoController::class);

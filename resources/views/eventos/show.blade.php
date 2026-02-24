@@ -198,28 +198,6 @@
         <a href="{{ $evento->link }}" target="_blank" class="btn btn-outline-secondary">Acessar link</a>
         @endif
 
-        <!-- @auth
-        @if($participanteId)
-        @if(!$jaInscrito)
-        <form method="POST" action="{{ route('inscricoes.inscrever', $evento) }}">
-          @csrf
-          <button class="btn btn-engaja">Inscrever-me</button>
-        </form>
-        @else
-        <form method="POST" action="{{ route('inscricoes.cancelar', $evento) }}"
-          data-confirm="Deseja cancelar sua inscrição?">
-          @csrf @method('DELETE')
-          <button class="btn btn-outline-danger">Cancelar minha inscrição</button>
-        </form>
-        @endif
-        @else
-        <a href="{{ route('profile.edit') }}" class="btn btn-outline-primary"
-                title="Complete seu cadastro de participante para se inscrever">
-                Completar cadastro para se inscrever
-              </a>
-        @endif
-        @endauth -->
-
         @hasanyrole('administrador|formador')
         <div class="actions d-flex gap-2 flex-shrink-0 align-items-center">
         <a href="{{ route('inscricoes.selecionar', $evento)}}" class="btn btn-engaja">Selecionar participantes</a>
@@ -407,24 +385,35 @@
                       </div>
                       @endif
                     </div>
+                    
                     @hasanyrole('administrador|formador')
-                    <div class="actions d-flex gap-2 flex-shrink-0 align-items-center">
-                      <a href="{{ route('atividades.show', $at) }}" class="btn btn-sm btn-outline-primary">
-                          Ver
+                    <div class="d-flex align-items-center gap-4 flex-shrink-0">
+                      <a href="{{ $at->avaliacaoAtividade 
+                              ? route('avaliacao-atividade.edit',   $at) 
+                              : route('avaliacao-atividade.create', $at) }}" 
+                         class="btn btn-sm {{ $at->avaliacaoAtividade ? 'btn-warning' : 'btn-outline-warning' }}">
+                          {{ $at->avaliacaoAtividade ? '📋 Avaliação ' : '📋 Avaliar' }}
                       </a>
+                      <div class="actions d-flex gap-2 align-items-center border-start ps-4">
+                        <a href="{{ route('atividades.show', $at) }}" class="btn btn-sm btn-outline-primary">
+                            Ver
+                        </a>
 
-                      <a href="{{ route('atividades.edit', $at) }}" class="btn btn-sm btn-outline-secondary">
-                          Editar
-                      </a>
+                        <a href="{{ route('atividades.edit', $at) }}" class="btn btn-sm btn-outline-secondary">
+                            Editar
+                        </a>
 
-                      <form action="{{ route('atividades.destroy', $at) }}" method="POST"
-                            class="d-inline m-0 p-0"
-                            data-confirm="Tem certeza que deseja excluir este momento?">
-                          @csrf @method('DELETE')
-                          <button class="btn btn-sm btn-outline-danger">Excluir</button>
-                      </form>
-                  </div>
+                        <form action="{{ route('atividades.destroy', $at) }}" method="POST"
+                              class="d-inline m-0 p-0"
+                              data-confirm="Tem certeza que deseja excluir este momento?">
+                            @csrf @method('DELETE')
+                            <button class="btn btn-sm btn-outline-danger">Excluir</button>
+                        </form>
+                      </div>
+                      
+                    </div>
                     @endhasanyrole
+
                   </div>
                 </div>
               </div>
