@@ -20,6 +20,7 @@ class BiValorRepository
             'codigoIndicador' => $codigoIndicador,
             'ano' => $ano,
             'dimensaoValorId' => $dimensaoValorId,
+            'versao_regra' => 2,
         ], function () use ($codigoIndicador, $ano, $dimensaoValorId) {
             $indicador = BiIndicador::where('codigo', $codigoIndicador)->firstOrFail();
 
@@ -31,6 +32,9 @@ class BiValorRepository
 
             if ($dimensaoValorId !== null) {
                 $query->where('bi_valores.dimensao_valor_id', $dimensaoValorId);
+            } else {
+                // Ranking geral: considera apenas o valor consolidado por municipio.
+                $query->whereNull('bi_valores.dimensao_valor_id');
             }
 
             $dados = $query
@@ -64,6 +68,7 @@ class BiValorRepository
             'codigoIndicadorAbsoluto' => $codigoIndicadorAbsoluto,
             'ano' => $ano,
             'dimensaoValorId' => $dimensaoValorId,
+            'versao_regra' => 2,
         ], function () use ($codigoIndicadorPercentual, $codigoIndicadorAbsoluto, $ano, $dimensaoValorId) {
             $indicadorPercentual = BiIndicador::where('codigo', $codigoIndicadorPercentual)->firstOrFail();
             $indicadorAbsoluto = BiIndicador::where('codigo', $codigoIndicadorAbsoluto)->firstOrFail();
@@ -76,6 +81,9 @@ class BiValorRepository
 
             if ($dimensaoValorId !== null) {
                 $query->where('bi_valores.dimensao_valor_id', $dimensaoValorId);
+            } else {
+                // Ranking geral: considera somente registros sem segmentacao de dimensao.
+                $query->whereNull('bi_valores.dimensao_valor_id');
             }
 
             $valores = $query->get([
