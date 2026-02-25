@@ -274,8 +274,8 @@ class BiValorRepository
     protected function formatarIndicadorCodigo(string $codigoIndicador): string
     {
         $mapa = [
-            'ANALFABETISMO_TAXA' => 'Taxa de analfabetismo',
-            'ANALFABETISMO_QTDE' => 'Quantidade de analfabetos',
+            'ANALFABETISMO_TAXA' => 'Taxa de não alfabetizados',
+            'ANALFABETISMO_QTDE' => 'Quantidade de não alfabetizados',
             'EJA_ACESSO_TAXA' => 'Taxa de acesso EJA',
             'EJA_MATRICULAS_QTDE' => 'Matrículas EJA',
         ];

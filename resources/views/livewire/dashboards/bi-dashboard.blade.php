@@ -46,8 +46,8 @@
         @php($anoAtual = (int) $ano)
         @php($municipioIdAtual = $this->municipioIdNormalizado())
         @php($municipioSelecionadoNome = $this->municipioSelecionadoNome())
-        @php($tituloRankingAnalfabetismo = "Ranking de analfabetismo por municípios ({$anoAtual})")
-        @php($tituloRankingEja = "Ranking de acesso à EJA por municípios ({$anoAtual})")
+        @php($tituloRankingAnalfabetismo = "Ranking de não alfabetizados por município ({$anoAtual})")
+        @php($tituloRankingEja = "Ranking de acesso à EJA por município ({$anoAtual})")
         @php($sufixoMunicipioDimensao = $municipioSelecionadoNome ? " - {$municipioSelecionadoNome}" : '')
 
         <livewire:graficos.ranking-municipios
