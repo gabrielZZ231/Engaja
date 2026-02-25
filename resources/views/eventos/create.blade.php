@@ -45,7 +45,7 @@
                     @error('nome')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
-                {{-- Tipo (RESTURADO O SELECT ORIGINAL) --}}
+                {{-- Tipo --}}
                 <div class="col-md-4">
                     <label for="tipo" class="form-label">Tipo</label>
                     <select id="tipo" name="tipo" class="form-select @error('tipo') is-invalid @enderror">
@@ -64,7 +64,7 @@
                     @error('tipo')<div class="invalid-feedback">{{ $message }}</div>@enderror
                 </div>
 
-                {{-- Modalidade (RESTURADO O SELECT ORIGINAL) --}}
+                {{-- Modalidade --}}
                 <div class="col-md-4">
                     <label for="modalidade" class="form-label">Modalidade</label>
                     <select id="modalidade" name="modalidade" class="form-select @error('modalidade') is-invalid @enderror">
@@ -234,9 +234,8 @@
                 </div>
                 @endif
 
-                {{-- ══ SEQUÊNCIA DIDÁTICA (Alpine.js) ══ --}}
-                <div class="col-12" x-data="sequenciasDidaticas({{ json_encode(old('sequencias', [])) }})">
-
+                {{-- ══ SEQUÊNCIA DIDÁTICA ══ --}}
+                <div class="col-12">
                     <hr class="my-1">
                     <h5 class="fw-semibold text-muted mb-3">Sequência Didática</h5>
 
@@ -248,40 +247,13 @@
                             </label>
                         </div>
                         <div class="col-auto">
-                            <input type="number" min="0" max="30"
-                                x-model.number="qtdDias"
-                                @input="ajustarBlocos"
-                                class="form-control" style="width:90px" placeholder="0">
+                            <input type="number" id="qtd_dias_create" min="0" max="30"
+                                   value="{{ count(old('sequencias', [])) }}"
+                                   class="form-control" style="width:90px" placeholder="0">
                         </div>
                     </div>
 
-                    <template x-for="(seq, index) in sequencias" :key="index">
-                        <div class="card mb-3 border-secondary-subtle">
-                            <div class="card-header bg-light py-2 d-flex align-items-center gap-2">
-                                <span class="badge bg-secondary" x-text="index + 1"></span>
-                                <strong x-text="`Dia / Período ${index + 1}`"></strong>
-                            </div>
-                            <div class="card-body row g-3">
-                                <div class="col-md-4">
-                                    <label class="form-label">Dia / Período</label>
-                                    <input type="text"
-                                        :name="`sequencias[${index}][periodo]`"
-                                        x-model="seq.periodo"
-                                        class="form-control"
-                                        placeholder="Ex.: Dia 1 – Manhã">
-                                </div>
-                                <div class="col-md-8">
-                                    <label class="form-label">Descrição do passo a passo</label>
-                                    <textarea
-                                        :name="`sequencias[${index}][descricao]`"
-                                        x-model="seq.descricao"
-                                        rows="3"
-                                        class="form-control"
-                                        placeholder="Descreva as atividades previstas…"></textarea>
-                                </div>
-                            </div>
-                        </div>
-                    </template>
+                    <div id="sequencias-container-create"></div>
                 </div>
 
                 {{-- Botões --}}
@@ -297,7 +269,6 @@
 
 @push('scripts')
 <script>
-    // Preview de Imagem
     document.getElementById('imagem')?.addEventListener('change', function (e) {
         const preview = document.getElementById('preview-imagem');
         const file = e.target.files[0];
@@ -307,26 +278,74 @@
         }
     });
 
-    // Controlador do AlpineJS para Sequência Didática
-    function sequenciasDidaticas(initial) {
-        return {
-            qtdDias: initial.length || 0,
-            sequencias: initial.length
-                ? initial.map(s => ({ periodo: s.periodo ?? '', descricao: s.descricao ?? '' }))
-                : [],
-            ajustarBlocos() {
-                const qtd = parseInt(this.qtdDias) || 0;
-                const atual = this.sequencias.length;
-                if (qtd > atual) {
-                    for (let i = atual; i < qtd; i++) {
-                        this.sequencias.push({ periodo: '', descricao: '' });
-                    }
-                } else {
-                    this.sequencias.splice(qtd);
-                }
-            }
-        };
+    const sequenciasIniciaisCreate = @json(old('sequencias', []));
+
+    function escHtml(str) {
+        return String(str ?? '')
+            .replace(/&/g, '&amp;')
+            .replace(/</g, '&lt;')
+            .replace(/>/g, '&gt;')
+            .replace(/"/g, '&quot;');
     }
+
+    function criarBlocoCreate(index, periodo, descricao) {
+        return `
+        <div class="card mb-3 border-secondary-subtle">
+            <div class="card-header bg-light py-2 d-flex align-items-center gap-2">
+                <span class="badge bg-secondary">${index + 1}</span>
+                <strong>Dia / Período ${index + 1}</strong>
+            </div>
+            <div class="card-body row g-3">
+                <div class="col-md-4">
+                    <label class="form-label">Dia / Período</label>
+                    <input type="text"
+                           name="sequencias[${index}][periodo]"
+                           value="${escHtml(periodo)}"
+                           class="form-control"
+                           placeholder="Ex.: Dia 1 – Manhã">
+                </div>
+                <div class="col-md-8">
+                    <label class="form-label">Descrição do passo a passo</label>
+                    <textarea name="sequencias[${index}][descricao]"
+                              class="form-control"
+                              rows="3"
+                              placeholder="Descreva as atividades previstas...">${escHtml(descricao)}</textarea>
+                </div>
+            </div>
+        </div>`;
+    }
+
+    function renderizarSequenciasCreate() {
+        const qtd       = parseInt(document.getElementById('qtd_dias_create')?.value) || 0;
+        const container = document.getElementById('sequencias-container-create');
+        if (!container) return;
+
+        const atual = container.querySelectorAll('.card').length;
+
+        if (qtd > atual) {
+            for (let i = atual; i < qtd; i++) {
+                const seq = sequenciasIniciaisCreate[i] ?? {};
+                container.insertAdjacentHTML('beforeend',
+                    criarBlocoCreate(i, seq.periodo ?? '', seq.descricao ?? '')
+                );
+            }
+        } else {
+            const cards = container.querySelectorAll('.card');
+            for (let i = qtd; i < cards.length; i++) {
+                cards[i].remove();
+            }
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', function () {
+        if (sequenciasIniciaisCreate.length > 0) {
+            document.getElementById('qtd_dias_create').value = sequenciasIniciaisCreate.length;
+        }
+        renderizarSequenciasCreate();
+
+        document.getElementById('qtd_dias_create')
+            ?.addEventListener('input', renderizarSequenciasCreate);
+    });
 </script>
 @endpush
 @endsection

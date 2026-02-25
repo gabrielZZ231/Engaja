@@ -38,6 +38,35 @@ class ProfileController extends Controller
         ]);
     }
 
+    public function completeDemographics(Request $request): RedirectResponse
+    {
+        $data = $request->validate([
+            'identidade_genero'        => ['required', 'string'],
+            'identidade_genero_outro'  => ['nullable', 'string', 'max:255', 'required_if:identidade_genero,Outro'],
+            'raca_cor'                 => ['required', 'string'],
+            'comunidade_tradicional'   => ['required', 'string'],
+            'comunidade_tradicional_outro' => ['nullable', 'string', 'max:255', 'required_if:comunidade_tradicional,Outro'],
+            'faixa_etaria'             => ['required', 'string'],
+            'pcd'                      => ['required', 'string'],
+            'orientacao_sexual'        => ['required', 'string'],
+            'orientacao_sexual_outra'  => ['nullable', 'string', 'max:255', 'required_if:orientacao_sexual,Outra'],
+        ], [
+            'identidade_genero.required'       => 'Identidade de gênero é obrigatória.',
+            'raca_cor.required'                => 'Raça/Cor é obrigatória.',
+            'comunidade_tradicional.required'  => 'Pertencimento a comunidade é obrigatório.',
+            'faixa_etaria.required'            => 'Faixa etária é obrigatória.',
+            'pcd.required'                     => 'Campo PcD é obrigatório.',
+            'orientacao_sexual.required'       => 'Orientação sexual é obrigatória.',
+            'identidade_genero_outro.required_if'      => 'Especifique sua identidade de gênero.',
+            'comunidade_tradicional_outro.required_if' => 'Especifique a comunidade tradicional.',
+            'orientacao_sexual_outra.required_if'      => 'Especifique sua orientação sexual.',
+        ]);
+
+        $request->user()->update($data);
+
+        return Redirect::back()->with('status', 'demograficos-salvos');
+    }
+
     public function certificados(Request $request): View
     {
         $user = $request->user();

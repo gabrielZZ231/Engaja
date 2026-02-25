@@ -198,28 +198,6 @@
         <a href="{{ $evento->link }}" target="_blank" class="btn btn-outline-secondary">Acessar link</a>
         @endif
 
-        <!-- @auth
-        @if($participanteId)
-        @if(!$jaInscrito)
-        <form method="POST" action="{{ route('inscricoes.inscrever', $evento) }}">
-          @csrf
-          <button class="btn btn-engaja">Inscrever-me</button>
-        </form>
-        @else
-        <form method="POST" action="{{ route('inscricoes.cancelar', $evento) }}"
-          data-confirm="Deseja cancelar sua inscrição?">
-          @csrf @method('DELETE')
-          <button class="btn btn-outline-danger">Cancelar minha inscrição</button>
-        </form>
-        @endif
-        @else
-        <a href="{{ route('profile.edit') }}" class="btn btn-outline-primary"
-                title="Complete seu cadastro de participante para se inscrever">
-                Completar cadastro para se inscrever
-              </a>
-        @endif
-        @endauth -->
-
         @hasanyrole('administrador|gerente|eq_pedagogica')
         <div class="actions d-flex gap-2 flex-shrink-0 align-items-center">
         <a href="{{ route('inscricoes.selecionar', $evento)}}" class="btn btn-engaja">Selecionar participantes</a>
@@ -321,9 +299,13 @@
 
       <div class="d-flex gap-2">
         @hasanyrole('administrador|gerente|eq_pedagogica')
-        <a href="{{ route('eventos.atividades.create', $evento) }}" class="btn btn-engaja btn-sm">
-          + Novo momento
-        </a>
+        {{-- Botão Interceptado --}}
+        <button type="button"
+                class="btn btn-engaja btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#modalChecklistPreAcao">
+            + Novo momento
+        </button>
         @endhasanyrole
 
         <a href="{{ route('eventos.atividades.index', $evento) }}" class="btn btn-outline-secondary btn-sm">
@@ -502,4 +484,45 @@
   </div>
 </div>
 @endhasanyrole
+
+{{-- Instância do Modal de Pré-ação --}}
+<x-checklist-modal
+    id="modalChecklistPreAcao"
+    title="Checklist de Planejamento"
+    btn-label="Prosseguir para criar momento"
+    :items="[
+        'Ao planejar cada ação, recorri aos objetivos gerais do projeto, em diálogo com os dados da Leitura do Mundo?',
+        'Ao planejar, estabeleci conexão com as outras ações do projeto? (Ex: Cartas para Esperançar, Semear Palavras)',
+        'Preparei listas de presença impressas de acordo com os dados a serem inseridos no sistema ENGAJA?',
+        'Preparei formulários de avaliação de cada ação de formação, para medir os impactos?',
+        'Organizei a lista de materiais necessários e apresentei à coordenação com antecedência?',
+        'Organizei a demanda de infraestrutura local com antecedência?',
+        'A inscrição do público esperado na formação foi feita?',
+        'A informação sobre o dia e horário chegou com antecedência aos públicos participantes?',
+        'Os materiais institucionais do projeto para entregar aos participantes estão organizados?',
+        'Equipe Pedagógica e Educadores estão com clareza de quem fará o que durante os encontros?',
+        'Planejei os momentos de registros audiovisual de cada ação?',
+        'Sei como nomear os arquivos e o local onde compartilhar os registros processuais?',
+        'Estou de posse de todos os contatos estratégicos em caso de necessidade?'
+    ]"
+/>
+
 @endsection
+
+@push('scripts')
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const btnConfirmarPreAcao = document.querySelector('.js-checklist-confirm[data-modal="modalChecklistPreAcao"]');
+    
+    if (btnConfirmarPreAcao) {
+        btnConfirmarPreAcao.addEventListener('click', function () {
+            const modalEl = document.getElementById('modalChecklistPreAcao');
+            const modal = bootstrap.Modal.getInstance(modalEl);
+            modal?.hide();
+            
+            window.location.href = "{{ route('eventos.atividades.create', $evento) }}";
+        });
+    }
+});
+</script>
+@endpush
