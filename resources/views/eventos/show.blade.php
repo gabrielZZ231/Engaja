@@ -198,49 +198,34 @@
         <a href="{{ $evento->link }}" target="_blank" class="btn btn-outline-secondary">Acessar link</a>
         @endif
 
-        <!-- @auth
-        @if($participanteId)
-        @if(!$jaInscrito)
-        <form method="POST" action="{{ route('inscricoes.inscrever', $evento) }}">
-          @csrf
-          <button class="btn btn-engaja">Inscrever-me</button>
-        </form>
-        @else
-        <form method="POST" action="{{ route('inscricoes.cancelar', $evento) }}"
-          data-confirm="Deseja cancelar sua inscrição?">
-          @csrf @method('DELETE')
-          <button class="btn btn-outline-danger">Cancelar minha inscrição</button>
-        </form>
-        @endif
-        @else
-        <a href="{{ route('profile.edit') }}" class="btn btn-outline-primary"
-                title="Complete seu cadastro de participante para se inscrever">
-                Completar cadastro para se inscrever
-              </a>
-        @endif
-        @endauth -->
-
-        @hasanyrole('administrador|formador')
+        @hasanyrole('administrador|gerente|eq_pedagogica')
         <div class="actions d-flex gap-2 flex-shrink-0 align-items-center">
         <a href="{{ route('inscricoes.selecionar', $evento)}}" class="btn btn-engaja">Selecionar participantes</a>
         <a href="{{ route('inscricoes.import', $evento)}}" class="btn btn-outline-primary">Importar planilha</a>
+        @endhasanyrole
+
+        @can('participante.ver')
         <a href="{{ route('inscricoes.inscritos', $evento) }}" class="btn btn-outline-primary">
           Ver inscritos
         </a>
+        @endcan
+
+        @role('administrador|gerente|eq_pedagogica|articulador')
         <button type="button" class="btn btn-outline-secondary" data-bs-toggle="modal"
           data-bs-target="#modalRelatoriosEvento">
           Relatórios
         </button>
-        @endhasanyrole
+        @endrole
 
         @can('update', $evento)
         <a href="{{ route('eventos.edit', $evento) }}" class="btn btn-outline-secondary">Editar</a>
-
+        @role('administrador')
         <form action="{{ route('eventos.destroy', $evento) }}" method="POST"
           class="d-flex m-0 p-0" data-confirm="Tem certeza que deseja excluir esta ação pedagógica?">
           @csrf @method('DELETE')
           <button class="btn btn-outline-danger">Excluir</button>
         </form>
+        @endrole
         </div>
         @endcan
       </div>
@@ -313,10 +298,14 @@
       <h2 class="h5 fw-bold mb-0">Programação</h2>
 
       <div class="d-flex gap-2">
-        @hasanyrole('administrador|formador')
-        <a href="{{ route('eventos.atividades.create', $evento) }}" class="btn btn-engaja btn-sm">
-          + Novo momento
-        </a>
+        @hasanyrole('administrador|gerente|eq_pedagogica')
+        {{-- Botão Interceptado --}}
+        <button type="button"
+                class="btn btn-engaja btn-sm"
+                data-bs-toggle="modal"
+                data-bs-target="#modalChecklistPreAcao">
+            + Novo momento
+        </button>
         @endhasanyrole
 
         <a href="{{ route('eventos.atividades.index', $evento) }}" class="btn btn-outline-secondary btn-sm">
@@ -395,7 +384,21 @@
                   <div class="d-flex justify-content-between align-items-start gap-3">
                     <div>
                       <div class="program-time">{{ $iniStr }}{{ $fimStr ? ' – ' . $fimStr : '' }}</div>
-                      <div class="program-title">{{ $momento }}</div>
+
+                      <div class="program-title d-flex align-items-center flex-wrap gap-2">
+                        <span>{{ $momento }}</span>
+                        {{-- ⚠️ Badge de checklist incompleto --}}
+                        @if($at->checklists_incompletos)
+                          <button type="button"
+                                  class="badge bg-warning text-dark border-0 btn-checklist-reabrir"
+                                  data-atividade-id="{{ $at->id }}"
+                                  data-checklist-pl="{{ json_encode($at->checklist_planejamento ?? []) }}"
+                                  data-checklist-en="{{ json_encode($at->checklist_encerramento ?? []) }}"
+                                  style="cursor:pointer; font-size: 0.75rem; padding: 0.35rem 0.5rem;">
+                            ⚠️ Checklist incompleto
+                          </button>
+                        @endif
+                      </div>
 
                       @if($local || $municipio || $chLabel || $publicoEsperado || $cargaLabel)
                       <div class="program-meta">
@@ -407,24 +410,41 @@
                       </div>
                       @endif
                     </div>
-                    @hasanyrole('administrador|formador')
+
+                    @hasanyrole('administrador|gerente')
+                    <div class="d-flex align-items-center gap-4 flex-shrink-0">
+                      <a href="{{ $at->avaliacaoAtividade
+                            ? route('avaliacao-atividade.edit',   $at)
+                            : route('avaliacao-atividade.create', $at) }}"
+                        class="btn btn-sm {{ $at->avaliacaoAtividade ? 'btn-warning' : 'btn-outline-warning' }}">
+                        {{ $at->avaliacaoAtividade ? '📋 Avaliação ' : '📋 Avaliar' }}
+                      </a>
                     <div class="actions d-flex gap-2 flex-shrink-0 align-items-center">
+                    @endhasanyrole
+
+                    @can('atividade.ver')
                       <a href="{{ route('atividades.show', $at) }}" class="btn btn-sm btn-outline-primary">
                           Ver
                       </a>
+                    @endcan
 
+                    @hasanyrole('administrador|gerente|eq_pedagogica')
                       <a href="{{ route('atividades.edit', $at) }}" class="btn btn-sm btn-outline-secondary">
                           Editar
                       </a>
+                    @endhasanyrole
 
+                    @hasanyrole('administrador|gerente')
                       <form action="{{ route('atividades.destroy', $at) }}" method="POST"
                             class="d-inline m-0 p-0"
                             data-confirm="Tem certeza que deseja excluir este momento?">
                           @csrf @method('DELETE')
                           <button class="btn btn-sm btn-outline-danger">Excluir</button>
                       </form>
-                  </div>
                     @endhasanyrole
+
+                  </div>
+
                   </div>
                 </div>
               </div>
@@ -438,7 +458,7 @@
   </div>
 
 </div>
-@hasanyrole('administrador|formador')
+@hasanyrole('administrador|gerente|eq_pedagogica|articulador')
 <div class="modal fade" id="modalRelatoriosEvento" tabindex="-1" aria-labelledby="modalRelatoriosEventoLabel"
   aria-hidden="true">
   <div class="modal-dialog modal-lg modal-dialog-centered">
@@ -482,4 +502,162 @@
   </div>
 </div>
 @endhasanyrole
+
+{{-- Instância do Modal de Pré-ação --}}
+<x-checklist-modal
+    id="modalChecklistPreAcao"
+    title="Checklist de Planejamento"
+    btn-label="Prosseguir para criar momento"
+    tipo="planejamento"
+    :marcados="[]"
+    :items="[
+        'Ao planejar cada ação, recorri aos objetivos gerais do projeto, em diálogo com os dados da Leitura do Mundo?',
+        'Ao planejar, estabeleci conexão com as outras ações do projeto? (Ex: Cartas para Esperançar, Semear Palavras)',
+        'Preparei listas de presença impressas de acordo com os dados a serem inseridos no sistema ENGAJA?',
+        'Preparei formulários de avaliação de cada ação de formação, para medir os impactos?',
+        'Organizei a lista de materiais necessários e apresentei à coordenação com antecedência?',
+        'Organizei a demanda de infraestrutura local com antecedência?',
+        'A inscrição do público esperado na formação foi feita?',
+        'A informação sobre o dia e horário chegou com antecedência aos públicos participantes?',
+        'Os materiais institucionais do projeto para entregar aos participantes estão organizados?',
+        'Equipe Pedagógica e Educadores estão com clareza de quem fará o que durante os encontros?',
+        'Planejei os momentos de registros audiovisual de cada ação?',
+        'Sei como nomear os arquivos e o local onde compartilhar os registros processuais?',
+        'Estou de posse de todos os contatos estratégicos em caso de necessidade?'
+    ]"
+/>
+
+{{-- Modal de reabertura de checklist --}}
+<div class="modal fade" id="modalReopenChecklist" tabindex="-1" data-bs-backdrop="static">
+  <div class="modal-dialog modal-lg modal-dialog-scrollable">
+    <div class="modal-content">
+      <div class="modal-header bg-engaja text-white border-0">
+        <h5 class="modal-title fw-bold">⚠️ Checklist Incompleto</h5>
+      </div>
+      <div class="modal-body" id="reopen-checklist-body">
+        {{-- preenchido por JS --}}
+      </div>
+      <div class="modal-footer border-0">
+        <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Fechar</button>
+        <button type="button" class="btn btn-engaja" id="btn-salvar-checklist-reopen">Salvar progresso</button>
+      </div>
+    </div>
+  </div>
+</div>
+
 @endsection
+
+@push('scripts')
+<script>
+  document.addEventListener('DOMContentLoaded', function () {
+
+      // Lógica 1: Criação de novo Momento
+      const btnConfirmarPreAcao = document.querySelector('.js-checklist-confirm[data-modal="modalChecklistPreAcao"]');
+
+      if (btnConfirmarPreAcao) {
+          btnConfirmarPreAcao.addEventListener('click', function () {
+              const marcados = [];
+              document.querySelectorAll('#modalChecklistPreAcao .js-checklist-item:checked').forEach(cb => {
+                  marcados.push(cb.dataset.index);
+              });
+
+              const url = new URL("{{ route('eventos.atividades.create', $evento) }}");
+
+              if (marcados.length > 0) {
+                  url.searchParams.append('marcados', marcados.join(','));
+              }
+
+              const modalEl = document.getElementById('modalChecklistPreAcao');
+              bootstrap.Modal.getInstance(modalEl)?.hide();
+
+              window.location.href = url.toString();
+          });
+      }
+
+      // Lógica 2: Edição/Reabertura de Checklist existente (Tarefa 2)
+      const ITENS_PLANEJAMENTO = [
+          'Ao planejar cada ação, recorri aos objetivos gerais do projeto, em diálogo com os dados da Leitura do Mundo?',
+          'Ao planejar, estabeleci conexão com as outras ações do projeto? (Ex: Cartas para Esperançar, Semear Palavras)',
+          'Preparei listas de presença impressas de acordo com os dados a serem inseridos no sistema ENGAJA?',
+          'Preparei formulários de avaliação de cada ação de formação, para medir os impactos?',
+          'Organizei a lista de materiais necessários e apresentei à coordenação com antecedência?',
+          'Organizei a demanda de infraestrutura local com antecedência?',
+          'A inscrição do público esperado na formação foi feita?',
+          'A informação sobre o dia e horário chegou com antecedência aos públicos participantes?',
+          'Os materiais institucionais do projeto para entregar aos participantes estão organizados?',
+          'Equipe Pedagógica e Educadores estão com clareza de quem fará o que durante os encontros?',
+          'Planejei os momentos de registros audiovisual de cada ação?',
+          'Sei como nomear os arquivos e o local onde compartilhar os registros processuais?',
+          'Estou de posse de todos os contatos estratégicos em caso de necessidade?'
+      ];
+      const ITENS_ENCERRAMENTO = [
+          'Verifiquei se os municípios estão corretos?',
+          'Confirmei a carga horária e os horários de início e término?',
+          'O público esperado e os dados do momento estão preenchidos corretamente?'
+      ];
+
+      let atividadeIdAtual = null;
+
+      document.querySelectorAll('.btn-checklist-reabrir').forEach(btn => {
+          btn.addEventListener('click', function () {
+              atividadeIdAtual = this.dataset.atividadeId;
+              const marcadosPl = JSON.parse(this.dataset.checklistPl || '[]');
+              const marcadosEn = JSON.parse(this.dataset.checklistEn || '[]');
+
+              const body = document.getElementById('reopen-checklist-body');
+              body.innerHTML = renderChecklist('planejamento', ITENS_PLANEJAMENTO, marcadosPl)
+                             + renderChecklist('encerramento', ITENS_ENCERRAMENTO, marcadosEn);
+
+              new bootstrap.Modal(document.getElementById('modalReopenChecklist')).show();
+          });
+      });
+
+      function renderChecklist(tipo, itens, marcados) {
+          let html = `<h6 class="fw-bold mt-2" style="color: #421944;">${tipo === 'planejamento' ? '📋 Planejamento' : '✅ Encerramento'}</h6><div class="vstack gap-2 mb-4">`;
+          itens.forEach((item, i) => {
+              const checked = marcados.includes(i) ? 'checked' : '';
+              html += `<label class="checklist-card d-flex align-items-center gap-3 ${checked ? 'checked' : ''}" style="cursor:pointer;border:2px solid #dee2e6;border-radius:10px;padding:12px 16px; ${checked ? 'background-color: #421944; color: #fff; border-color: #421944;' : ''}">
+                  <input type="checkbox" class="js-reopen-item" data-tipo="${tipo}" data-index="${i}" ${checked} style="display:none">
+                  <span class="checklist-check-icon" style="width:22px;height:22px;background:#fff;border-radius:50%;display:flex;align-items:center;justify-content:center;color:#421944;font-weight:900;opacity:${checked ? 1 : 0}">✓</span>
+                  <span>${item}</span>
+              </label>`;
+          });
+          html += '</div>';
+          return html;
+      }
+
+      // Toggle visual dos cards no modal de reabertura
+      document.getElementById('reopen-checklist-body')?.addEventListener('change', function(e) {
+          if (e.target.classList.contains('js-reopen-item')) {
+              const label = e.target.closest('label');
+              label.classList.toggle('checked', e.target.checked);
+              label.style.backgroundColor = e.target.checked ? '#421944' : '';
+              label.style.color = e.target.checked ? '#fff' : '';
+              label.style.borderColor = e.target.checked ? '#421944' : '#dee2e6';
+              label.querySelector('.checklist-check-icon').style.opacity = e.target.checked ? 1 : 0;
+          }
+      });
+
+      document.getElementById('btn-salvar-checklist-reopen')?.addEventListener('click', function () {
+          if (!atividadeIdAtual) return;
+
+          // Salva planejamento
+          const pl = [...document.querySelectorAll('.js-reopen-item[data-tipo="planejamento"]:checked')].map(c => parseInt(c.dataset.index));
+          const en = [...document.querySelectorAll('.js-reopen-item[data-tipo="encerramento"]:checked')].map(c => parseInt(c.dataset.index));
+
+          const salvar = (tipo, itens) => fetch(`/atividades/${atividadeIdAtual}/checklist`, {
+              method: 'POST',
+              headers: {
+                  'Content-Type': 'application/json',
+                  'X-CSRF-TOKEN': document.querySelector('meta[name="csrf-token"]').content
+              },
+              body: JSON.stringify({ tipo, itens })
+          });
+
+          Promise.all([salvar('planejamento', pl), salvar('encerramento', en)])
+              .then(() => { window.location.reload(); })
+              .catch(() => alert('Erro ao salvar. Tente novamente.'));
+      });
+  });
+</script>
+@endpush

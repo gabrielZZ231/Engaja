@@ -27,7 +27,7 @@ class AtividadeController extends Controller
 
     public function create(Evento $evento)
     {
-        $this->authorize('update', $evento);
+        $this->authorize('atividade.criar');
         $municipios = Municipio::with(['estado.regiao'])
             ->get(['id', 'nome', 'estado_id'])
             ->sortBy(function ($m) {
@@ -48,9 +48,24 @@ class AtividadeController extends Controller
         return view('atividades.create', compact('evento', 'municipios', 'atividadesCopiaveis'));
     }
 
+    public function saveChecklist(Request $request, Atividade $atividade)
+    {
+        $request->validate([
+            'tipo'   => 'required|in:planejamento,encerramento',
+            'itens'  => 'nullable|array',
+            'itens.*'=> 'integer|min:0',
+        ]);
+
+        $campo = 'checklist_' . $request->tipo;
+        $atividade->$campo = $request->input('itens', []);
+        $atividade->save();
+
+        return response()->json(['status' => 'ok', 'saved' => $atividade->$campo]);
+    }
+
     public function store(Request $request, Evento $evento)
     {
-        $this->authorize('update', $evento);
+        $this->authorize('atividade.criar');
 
         $dados = $request->validate([
             'municipios'          => 'nullable|array',
@@ -62,6 +77,10 @@ class AtividadeController extends Controller
             'publico_esperado'    => 'nullable|integer|min:0',
             'carga_horaria'       => 'nullable|integer|min:0',
             'copiar_inscritos_de' => 'nullable|exists:atividades,id',
+            'checklist_planejamento'      => 'nullable|array',
+            'checklist_planejamento.*'    => 'integer|min:0',
+            'checklist_encerramento'      => 'nullable|array',
+            'checklist_encerramento.*'    => 'integer|min:0',
         ]);
 
         $copiarDe = $dados['copiar_inscritos_de'] ?? null;
@@ -78,14 +97,14 @@ class AtividadeController extends Controller
         $copiados = $this->copiarInscritos($copiarDe, $atividade);
 
         return redirect()
-            ->route('eventos.show', $evento)
-            ->with('success', $this->mensagemSucesso('Momento adicionado com sucesso!', $copiados));
+        ->route('eventos.show', $evento)
+        ->with('success', 'Momento criado com sucesso!');
     }
 
     public function edit(Atividade $atividade)
     {
         $evento = $atividade->evento;
-        $this->authorize('update', $evento);
+        $this->authorize('atividade.editar');
 
         $atividade->load('municipios');
 
@@ -112,7 +131,7 @@ class AtividadeController extends Controller
     public function update(Request $request, Atividade $atividade)
     {
         $evento = $atividade->evento;
-        $this->authorize('update', $evento);
+        $this->authorize('atividade.editar');
 
         $dados = $request->validate([
             'municipios'          => 'nullable|array',
@@ -124,6 +143,10 @@ class AtividadeController extends Controller
             'publico_esperado'    => 'nullable|integer|min:0',
             'carga_horaria'       => 'nullable|integer|min:0',
             'copiar_inscritos_de' => 'nullable|exists:atividades,id',
+            'checklist_planejamento'      => 'nullable|array',
+            'checklist_planejamento.*'    => 'integer|min:0',
+            'checklist_encerramento'      => 'nullable|array',
+            'checklist_encerramento.*'    => 'integer|min:0',
         ]);
 
         $copiarDe = $dados['copiar_inscritos_de'] ?? null;
@@ -145,8 +168,7 @@ class AtividadeController extends Controller
 
     public function destroy(Atividade $atividade)
     {
-        $evento = $atividade->evento;
-        $this->authorize('delete', $evento);
+        $this->authorize('atividade.excluir');
 
         $atividade->delete();
 
