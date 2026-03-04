@@ -11,10 +11,14 @@ use Illuminate\Http\Request;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\View\View;
 use Spatie\Permission\Models\Role;
+use App\Exports\UsersExport;
+use Maatwebsite\Excel\Facades\Excel;
 
 class UserManagementController extends Controller
 {
-    private const PROTECTED_ROLES = ['administrador', 'gestor'];
+    private const PROTECTED_ROLES = ['administrador'];
+
+    private const LEGACY_ROLES = ['gestor', 'formador'];
 
     public function index(Request $request): View
     {
@@ -24,7 +28,7 @@ class UserManagementController extends Controller
             ->whereDoesntHave('roles', fn($q) => $q->whereIn('name', self::PROTECTED_ROLES))
             ->when($search !== '', function ($q) use ($search) {
                 $q->where(function ($sub) use ($search) {
-                    $sub->where('name', 'like', "%{$search}%")
+                    $sub->where('name', 'ilike', "%{$search}%")
                         ->orWhere('email', 'like', "%{$search}%");
                 });
             })
@@ -81,6 +85,17 @@ class UserManagementController extends Controller
         $managedUser->fill([
             'name'  => $data['name'],
             'email' => $data['email'],
+
+            //campos demograficos
+            'identidade_genero'            => $data['identidade_genero'] ?? null,
+            'identidade_genero_outro'      => $data['identidade_genero_outro'] ?? null,
+            'raca_cor'                     => $data['raca_cor'] ?? null,
+            'comunidade_tradicional'       => $data['comunidade_tradicional'] ?? null,
+            'comunidade_tradicional_outro' => $data['comunidade_tradicional_outro'] ?? null,
+            'faixa_etaria'                 => $data['faixa_etaria'] ?? null,
+            'pcd'                          => $data['pcd'] ?? null,
+            'orientacao_sexual'            => $data['orientacao_sexual'] ?? null,
+            'orientacao_sexual_outra'      => $data['orientacao_sexual_outra'] ?? null,
         ]);
 
         if ($oldEmail !== $data['email']) {
@@ -101,9 +116,15 @@ class UserManagementController extends Controller
             ]
         );
 
-        $roleToApply = $data['role'] ?? $managedUser->roles->first()?->name;
-        if ($roleToApply) {
-            $managedUser->syncRoles([$roleToApply]);
+        if (auth()->user()->hasRole('administrador')) {
+            //se a role vier preenchida no request, aplica. Se vier vazia, remove os acessos.
+            $roleToApply = $data['role'] ?? null;
+
+            if ($roleToApply) {
+                $managedUser->syncRoles([$roleToApply]);
+            } else {
+                $managedUser->syncRoles([]);
+            }
         }
 
         return redirect()
@@ -113,7 +134,9 @@ class UserManagementController extends Controller
 
     private function assignableRoles()
     {
-        return Role::whereNotIn('name', self::PROTECTED_ROLES)
+        $rolesToExclude = array_merge(self::PROTECTED_ROLES, self::LEGACY_ROLES);
+
+        return Role::whereNotIn('name', $rolesToExclude)
             ->orderBy('name')
             ->get(['name']);
     }
@@ -121,5 +144,10 @@ class UserManagementController extends Controller
     private function isProtected(User $user): bool
     {
         return $user->hasAnyRole(self::PROTECTED_ROLES);
+    }
+
+    public function export()
+    {
+        return Excel::download(new UsersExport, 'usuarios.xlsx');
     }
 }

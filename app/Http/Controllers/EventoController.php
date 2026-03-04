@@ -2,8 +2,12 @@
 
 namespace App\Http\Controllers;
 
+use App\Exports\EventoParticipantesGeralExport;
+use App\Exports\EventoParticipantesPorMomentoExport;
 use App\Models\Evento;
 use App\Models\Eixo;
+use App\Models\MatrizAprendizagem;
+use App\Models\SituacaoDesafiadora;
 use App\Models\User;
 use App\Models\Participante;
 use App\Models\Atividade;
@@ -14,12 +18,16 @@ use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Storage;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use App\Imports\ParticipantesImport;
-use \Maatwebsite\Excel\Facades\Excel;
 use Illuminate\Validation\Rules;
 use Illuminate\Support\Facades\Hash;
 use App\Http\Requests\CadastroParticipanteStoreRequest;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Carbon\Carbon;
+use Maatwebsite\Excel\Concerns\FromCollection;
+use Maatwebsite\Excel\Concerns\WithHeadings;
+use Maatwebsite\Excel\Facades\Excel;
+use App\Models\Presenca;
 
 class EventoController extends Controller
 {
@@ -33,7 +41,7 @@ class EventoController extends Controller
                 $qq->where(function ($w) use ($search) {
                     $w->whereRaw('LOWER(nome) LIKE ?', ['%' . $search . '%'])
                         ->orWhereRaw('LOWER(tipo) LIKE ?', ['%' . $search . '%'])
-                        ->orWhereRaw('LOWER(objetivo) LIKE ?', ['%' . $search . '%']);
+                        ->orWhereRaw('LOWER(objetivos_gerais) LIKE ?', ['%' . $search . '%']);
                 });
             })
             ->when($r->eixo, fn($qq) => $qq->where('eixo_id', $r->eixo))
@@ -51,8 +59,12 @@ class EventoController extends Controller
     {
         $this->authorize('create', Evento::class);
 
-        $eixos = Eixo::orderBy('nome')->get();
-        return view('eventos.create', compact('eixos'));
+        $eixos     = Eixo::orderBy('nome')->get();
+        $matrizes  = MatrizAprendizagem::orderBy('nome')->get();
+        $situacoes = SituacaoDesafiadora::orderBy('categoria')->orderBy('nome')->get()
+                        ->groupBy('categoria');
+
+        return view('eventos.create', compact('eixos', 'matrizes', 'situacoes'));
     }
 
     public function store(Request $request)
@@ -60,13 +72,20 @@ class EventoController extends Controller
         $this->authorize('create', Evento::class);
 
         $request->validate([
-            'nome'        => 'required|string|max:255',
-            'eixo_id'     => 'required|exists:eixos,id',
-            'link'        => 'nullable|url',
-            'data_inicio' => 'nullable|date',
-            'data_fim'    => 'nullable|date|after_or_equal:data_inicio',
-            'local'       => 'nullable|string|max:255',
-            'imagem'      => 'nullable|mimes:jpg,jpeg,png,webp,avif,svg|max:2048',
+            'nome'                     => 'required|string|max:255',
+            'eixo_id'                  => 'required|exists:eixos,id',
+            'link'                     => 'nullable|url',
+            'data_inicio'              => 'nullable|date',
+            'data_fim'                 => 'nullable|date|after_or_equal:data_inicio',
+            'local'                    => 'nullable|string|max:255',
+            'imagem'                   => 'nullable|mimes:jpg,jpeg,png,webp,avif,svg|max:2048',
+            'matrizes'                 => 'nullable|array',
+            'matrizes.*'               => 'exists:matrizes_aprendizagem,id',
+            'situacoes_desafiadoras'   => 'nullable|array',
+            'situacoes_desafiadoras.*' => 'exists:situacoes_desafiadoras,id',
+            'sequencias'               => 'nullable|array',
+            'sequencias.*.periodo'     => 'nullable|string|max:255',
+            'sequencias.*.descricao'   => 'nullable|string',
         ]);
 
         $dados = $request->only([
@@ -77,9 +96,12 @@ class EventoController extends Controller
             'data_fim',
             'modalidade',
             'link',
-            'objetivo',
-            'resumo',
-            'local'
+            'local',
+            'objetivos_gerais',
+            'objetivos_especificos',
+            'recursos_materiais_necessarios',
+            'providencias_sme_parceria',
+            'observacoes_complementares',
         ]);
         $dados['user_id'] = Auth::id();
 
@@ -87,9 +109,14 @@ class EventoController extends Controller
             $dados['imagem'] = $request->file('imagem')->store('eventos', 'public');
         }
 
-        Evento::create($dados);
+        $evento = Evento::create($dados);
 
-        return redirect()->route('eventos.index')->with('success', 'Evento criado com sucesso!');
+        $evento->matrizes()->sync($request->input('matrizes', []));
+        $evento->situacoesDesafiadoras()->sync($request->input('situacoes_desafiadoras', []));
+        $this->syncSequencias($evento, $request->input('sequencias', []));
+
+        return redirect()->route('eventos.index')
+            ->with('success', 'Ação pedagógica criada com sucesso!');
     }
 
     public function show(Evento $evento)
@@ -98,19 +125,47 @@ class EventoController extends Controller
             'eixo',
             'user',
             'atividades' => fn($q) => $q
-                ->with('municipios.estado')
+                ->with(['municipios.estado', 'avaliacaoAtividade'])
                 ->orderBy('dia')
                 ->orderBy('hora_inicio'),
         ]);
-        return view('eventos.show', compact('evento'));
+
+        $atividades = $evento->atividades;
+        return view('eventos.show', compact('evento', 'atividades'));
+    }
+
+    public function relatorios(Request $request, Evento $evento)
+    {
+        $user = $request->user();
+
+        if (!$user || !$user->hasAnyRole(['administrador', 'gerente', 'eq_pedagogica', 'articulador'])) {
+            abort(403, 'Ação não autorizada.');
+        }
+
+        $tipo = $request->get('tipo', 'geral');
+        $slug = Str::slug($evento->nome ?? 'acao-pedagogica');
+
+        if ($tipo === 'momentos') {
+            $nomeArquivo = $slug.'-participantes-por-momento.xlsx';
+            return Excel::download(new EventoParticipantesPorMomentoExport($evento), $nomeArquivo);
+        }
+
+        $nomeArquivo = $slug.'-participantes-geral.xlsx';
+        return Excel::download(new EventoParticipantesGeralExport($evento), $nomeArquivo);
     }
 
     public function edit(Evento $evento)
     {
         $this->authorize('update', $evento);
 
-        $eixos = Eixo::orderBy('nome')->get();
-        return view('eventos.edit', compact('evento', 'eixos'));
+        $evento->load(['matrizes', 'situacoesDesafiadoras', 'sequenciasDidaticas']);
+
+        $eixos     = Eixo::orderBy('nome')->get();
+        $matrizes  = MatrizAprendizagem::orderBy('nome')->get();
+        $situacoes = SituacaoDesafiadora::orderBy('categoria')->orderBy('nome')->get()
+                        ->groupBy('categoria');
+
+        return view('eventos.edit', compact('evento', 'eixos', 'matrizes', 'situacoes'));
     }
 
     public function update(Request $request, Evento $evento)
@@ -118,13 +173,20 @@ class EventoController extends Controller
         $this->authorize('update', $evento);
 
         $request->validate([
-            'nome'        => 'required|string|max:255',
-            'eixo_id'     => 'required|exists:eixos,id',
-            'link'        => 'nullable|url',
-            'data_inicio' => 'nullable|date',
-            'data_fim'    => 'nullable|date|after_or_equal:data_inicio',
-            'local'       => 'nullable|string|max:255',
-            'imagem'      => 'nullable|mimes:jpg,jpeg,png,webp,avif,svg|max:2048',
+            'nome'                     => 'required|string|max:255',
+            'eixo_id'                  => 'required|exists:eixos,id',
+            'link'                     => 'nullable|url',
+            'data_inicio'              => 'nullable|date',
+            'data_fim'                 => 'nullable|date|after_or_equal:data_inicio',
+            'local'                    => 'nullable|string|max:255',
+            'imagem'                   => 'nullable|mimes:jpg,jpeg,png,webp,avif,svg|max:2048',
+            'matrizes'                 => 'nullable|array',
+            'matrizes.*'               => 'exists:matrizes_aprendizagem,id',
+            'situacoes_desafiadoras'   => 'nullable|array',
+            'situacoes_desafiadoras.*' => 'exists:situacoes_desafiadoras,id',
+            'sequencias'               => 'nullable|array',
+            'sequencias.*.periodo'     => 'nullable|string|max:255',
+            'sequencias.*.descricao'   => 'nullable|string',
         ]);
 
         $evento->fill($request->only([
@@ -135,9 +197,12 @@ class EventoController extends Controller
             'data_fim',
             'modalidade',
             'link',
-            'objetivo',
-            'resumo',
-            'local'
+            'local',
+            'objetivos_gerais',
+            'objetivos_especificos',
+            'recursos_materiais_necessarios',
+            'providencias_sme_parceria',
+            'observacoes_complementares',
         ]));
 
         if ($request->hasFile('imagem')) {
@@ -149,7 +214,12 @@ class EventoController extends Controller
 
         $evento->save();
 
-        return redirect()->route('eventos.index')->with('success', 'Evento atualizado com sucesso!');
+        $evento->matrizes()->sync($request->input('matrizes', []));
+        $evento->situacoesDesafiadoras()->sync($request->input('situacoes_desafiadoras', []));
+        $this->syncSequencias($evento, $request->input('sequencias', []));
+
+        return redirect()->route('eventos.index')
+            ->with('success', 'Ação pedagógica atualizada com sucesso!');
     }
 
     public function destroy(Evento $evento)
@@ -162,6 +232,109 @@ class EventoController extends Controller
 
         $evento->delete();
         return redirect()->route('eventos.index')->with('success', 'Evento excluído.');
+    }
+
+    public function relatorioParticipantesUnicos(Request $request, Evento $evento)
+    {
+        $presencas = Presenca::with(['inscricao.participante.user', 'atividade'])
+            ->where('status', 'presente')
+            ->whereHas('atividade', fn ($q) => $q->where('evento_id', $evento->id))
+            ->get();
+
+        $grupo = $presencas->groupBy(fn ($p) => $p->inscricao->participante->id ?? 0);
+
+        $rows = $grupo->map(function ($lista) use ($evento) {
+            $p = $lista->first()->inscricao?->participante;
+            $user = $p?->user;
+            $carga = $lista->sum(fn ($item) => (float) ($item->atividade?->carga_horaria ?? 0));
+            $mun = $p?->municipio;
+            $estado = $mun?->estado;
+            $municipioFmt = $mun && $estado ? "{$mun->nome} - {$estado->sigla}" : ($mun->nome ?? '-');
+            return [
+                'Nome'                => $user->name ?? '-',
+                'Email'               => $user->email ?? '-',
+                'CPF'                 => $p->cpf ?? '-',
+                'Telefone'            => $p->telefone ?? '-',
+                'Escola/Unidade'      => $p->escola_unidade ?? '-',
+                'Tipo organização'    => $p->tipo_organizacao ?? '-',
+                'Município'           => $municipioFmt ?? '-',
+                'Região'              => $estado->regiao ?? '-',
+                'Tag'                 => $p->tag ?? '-',
+                'Ação pedagógica'     => $evento->nome,
+                'Carga horária total' => $carga,
+            ];
+        })->values();
+
+        $export = new class($rows) implements FromCollection, WithHeadings {
+            private $rows;
+            public function __construct($rows) { $this->rows = $rows; }
+            public function collection() { return collect($this->rows); }
+            public function headings(): array
+            {
+                return [
+                    'Nome', 'Email', 'CPF', 'Telefone', 'Escola/Unidade',
+                    'Tipo organização', 'Município', 'Região', 'Tag',
+                    'Ação pedagógica', 'Carga horária total',
+                ];
+            }
+        };
+
+        $nomeArquivo = 'relatorio-participantes-unicos-'.$evento->id.'.xlsx';
+        return Excel::download($export, $nomeArquivo);
+    }
+
+    public function relatorioParticipantesPorMomento(Request $request, Evento $evento)
+    {
+        $presencas = Presenca::with(['inscricao.participante.user', 'atividade'])
+            ->where('status', 'presente')
+            ->whereHas('atividade', fn ($q) => $q->where('evento_id', $evento->id))
+            ->get();
+
+        $rows = $presencas->map(function ($p) use ($evento) {
+            $participante = $p->inscricao?->participante;
+            $user = $participante?->user;
+            $atv  = $p->atividade;
+            $titulo = $atv->titulo ?? $atv->descricao ?? 'Momento';
+            $dia   = $atv->dia ? Carbon::parse($atv->dia)->format('d/m/Y') : '-';
+            $hora  = $atv->hora_inicio ? Carbon::parse($atv->hora_inicio)->format('H:i') : '-';
+            $mun = $participante?->municipio;
+            $estado = $mun?->estado;
+            $municipioFmt = $mun && $estado ? "{$mun->nome} - {$estado->sigla}" : ($mun->nome ?? '-');
+            return [
+                'Nome'                     => $user->name ?? '-',
+                'Email'                    => $user->email ?? '-',
+                'CPF'                      => $participante->cpf ?? '-',
+                'Telefone'                 => $participante->telefone ?? '-',
+                'Escola/Unidade'           => $participante->escola_unidade ?? '-',
+                'Tipo organização'         => $participante->tipo_organizacao ?? '-',
+                'Município'                => $municipioFmt ?? '-',
+                'Região'                   => $estado->regiao ?? '-',
+                'Tag'                      => $participante->tag ?? '-',
+                'Ação pedagógica'          => $evento->nome,
+                'Momento'                  => $titulo,
+                'Dia'                      => $dia,
+                'Hora início'              => $hora,
+                'Carga horária do momento' => (float) ($atv->carga_horaria ?? 0),
+            ];
+        })->values();
+
+        $export = new class($rows) implements FromCollection, WithHeadings {
+            private $rows;
+            public function __construct($rows) { $this->rows = $rows; }
+            public function collection() { return collect($this->rows); }
+            public function headings(): array
+            {
+                return [
+                    'Nome', 'Email', 'CPF', 'Telefone', 'Escola/Unidade',
+                    'Tipo organização', 'Município', 'Região', 'Tag',
+                    'Ação pedagógica', 'Momento', 'Dia', 'Hora início',
+                    'Carga horária do momento',
+                ];
+            }
+        };
+
+        $nomeArquivo = 'relatorio-participantes-momentos-'.$evento->id.'.xlsx';
+        return Excel::download($export, $nomeArquivo);
     }
 
     public function cadastro_inscricao($evento_id, $atividade_id)
@@ -183,7 +356,6 @@ class EventoController extends Controller
         $request->validate([
             'name' => ['required', 'string', 'max:255'],
             'email' => ['required', 'string', 'lowercase', 'email', 'max:255', 'unique:' . \App\Models\User::class],
-            //'password' => ['required', 'confirmed', Rules\Password::defaults()],
         ]);
 
         $data = $request->validated();
@@ -203,12 +375,12 @@ class EventoController extends Controller
             $user->assignRole('participante');
 
             $participanteData = [
-                'cpf'              => $data['cpf']   ?? null,
-                'telefone'         => $data['telefone']   ?? null,
-                'municipio_id'     => $data['municipio_id']   ?? null,
+                'cpf'              => $data['cpf']       ?? null,
+                'telefone'         => $data['telefone']  ?? null,
+                'municipio_id'     => $data['municipio_id'] ?? null,
                 'escola_unidade'   => $data['escola_unidade'] ?? null,
                 'tipo_organizacao' => $data['tipo_organizacao'] ?? null,
-                'tag'              => $data['tag']            ?? null,
+                'tag'              => $data['tag']       ?? null,
             ];
 
             $user->participante()->updateOrCreate(
@@ -220,8 +392,6 @@ class EventoController extends Controller
             $this->presenca($inscricao, $atividade);
 
             DB::commit();
-
-            //Auth::login($user);
 
             return redirect()->route('presenca.confirmar', $atividade->id)->with('success', 'Cadastro realizado com sucesso! Agora você já pode confirmar sua presença abaixo');
         } catch (\Throwable $e) {
@@ -273,5 +443,22 @@ class EventoController extends Controller
             ['inscricao_id' => $inscricao->id, 'atividade_id' => $atividade->id],
             ['status' => 'presente']
         );
+    }
+
+    private function syncSequencias(Evento $evento, array $sequencias): void
+    {
+        $evento->sequenciasDidaticas()->delete();
+
+        foreach ($sequencias as $seq) {
+            $periodo   = trim($seq['periodo'] ?? '');
+            $descricao = trim($seq['descricao'] ?? '');
+
+            if ($periodo !== '' || $descricao !== '') {
+                $evento->sequenciasDidaticas()->create([
+                    'periodo'   => $periodo,
+                    'descricao' => $descricao,
+                ]);
+            }
+        }
     }
 }
