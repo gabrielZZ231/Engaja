@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Models\Agendamento;
 use App\Models\AtividadeAcao;
+use App\Models\Municipio;
 use App\Models\User;
 use Illuminate\Http\Request;
 use Illuminate\Validation\ValidationException;
@@ -28,23 +29,20 @@ class AgendamentoController extends Controller
             ->orderBy('nome')
             ->get();
 
-        $municipio = $this->municipioDoUsuario(auth()->user());
+        $user = auth()->user();
+        $permiteEscolherMunicipio = $this->usuarioPodeEscolherMunicipio($user);
+        $municipio = $permiteEscolherMunicipio ? null : $this->municipioDoUsuario($user);
+        $municipios = $this->municipiosParaSelecao($permiteEscolherMunicipio);
 
-        return view('agendamentos.create', compact('atividadeAcoes', 'municipio'));
+        return view('agendamentos.create', compact('atividadeAcoes', 'municipio', 'municipios', 'permiteEscolherMunicipio'));
     }
 
     public function store(Request $request)
     {
-        $dados = $this->validarDados($request);
-
-        $municipio = $this->municipioDoUsuario(auth()->user());
-        if (!$municipio) {
-            return back()
-                ->withInput()
-                ->withErrors(['municipio_id' => 'Seu participante não possui município preenchido. Atualize seu perfil para cadastrar agendamentos.']);
-        }
-
-        $dados['municipio_id'] = $municipio->id;
+        $user = auth()->user();
+        $permiteEscolherMunicipio = $this->usuarioPodeEscolherMunicipio($user);
+        $dados = $this->validarDados($request, $permiteEscolherMunicipio);
+        $dados = $this->aplicarMunicipio($dados, $user, $permiteEscolherMunicipio);
         $dados['user_id'] = auth()->id();
 
         Agendamento::create($dados);
@@ -70,25 +68,22 @@ class AgendamentoController extends Controller
             ->orderBy('nome')
             ->get();
 
-        $municipio = $this->municipioDoUsuario(auth()->user());
+        $user = auth()->user();
+        $permiteEscolherMunicipio = $this->usuarioPodeEscolherMunicipio($user);
+        $municipio = $permiteEscolherMunicipio ? null : $this->municipioDoUsuario($user);
+        $municipios = $this->municipiosParaSelecao($permiteEscolherMunicipio);
 
-        return view('agendamentos.edit', compact('agendamento', 'atividadeAcoes', 'municipio'));
+        return view('agendamentos.edit', compact('agendamento', 'atividadeAcoes', 'municipio', 'municipios', 'permiteEscolherMunicipio'));
     }
 
     public function update(Request $request, Agendamento $agendamento)
     {
         $this->garantirNaoEfetivado($agendamento);
 
-        $dados = $this->validarDados($request);
-
-        $municipio = $this->municipioDoUsuario(auth()->user());
-        if (!$municipio) {
-            return back()
-                ->withInput()
-                ->withErrors(['municipio_id' => 'Seu participante não possui município preenchido. Atualize seu perfil para cadastrar agendamentos.']);
-        }
-
-        $dados['municipio_id'] = $municipio->id;
+        $user = auth()->user();
+        $permiteEscolherMunicipio = $this->usuarioPodeEscolherMunicipio($user);
+        $dados = $this->validarDados($request, $permiteEscolherMunicipio);
+        $dados = $this->aplicarMunicipio($dados, $user, $permiteEscolherMunicipio);
         $dados['user_id'] = auth()->id();
 
         $agendamento->update($dados);
@@ -109,14 +104,23 @@ class AgendamentoController extends Controller
             ->with('success', 'Agendamento removido com sucesso.');
     }
 
-    private function validarDados(Request $request): array
+    private function validarDados(Request $request, bool $validarMunicipio = false): array
     {
-        $dados = $request->validate([
+        $rules = [
             'data_horario' => 'required|date',
             'atividade_acao_id' => 'required|exists:atividade_acoes,id',
             'publico_participante' => 'required|string|max:255',
             'local_acao' => 'required|string|max:255',
             'turma' => 'nullable|string|max:255',
+        ];
+
+        if ($validarMunicipio) {
+            $rules['municipio_id'] = 'required|exists:municipios,id';
+        }
+
+        $dados = $request->validate($rules, [
+            'municipio_id.required' => 'Selecione o município do agendamento.',
+            'municipio_id.exists' => 'O município selecionado não é válido.',
         ]);
 
         $atividadeAcao = AtividadeAcao::query()->findOrFail($dados['atividade_acao_id']);
@@ -146,7 +150,7 @@ class AgendamentoController extends Controller
         return $dados;
     }
 
-    private function municipioDoUsuario(?User $user)
+    private function municipioDoUsuario(?User $user): ?Municipio
     {
         if (!$user) {
             return null;
@@ -156,6 +160,46 @@ class AgendamentoController extends Controller
             ->with('municipio.estado')
             ->first()
             ?->municipio;
+    }
+
+    private function usuarioPodeEscolherMunicipio(?User $user): bool
+    {
+        return $user && !$user->hasRole('SME');
+    }
+
+    private function municipiosParaSelecao(bool $incluir): \Illuminate\Support\Collection
+    {
+        if (!$incluir) {
+            return collect();
+        }
+
+        return Municipio::query()
+            ->with('estado:id,nome,sigla')
+            ->orderBy('nome')
+            ->get(['id', 'nome', 'estado_id']);
+    }
+
+    private function resolverMunicipioId(array $dados, ?User $user, bool $permitirEscolha): ?int
+    {
+        if ($permitirEscolha) {
+            return (int) ($dados['municipio_id'] ?? 0) ?: null;
+        }
+
+        return $this->municipioDoUsuario($user)?->id;
+    }
+
+    private function aplicarMunicipio(array $dados, ?User $user, bool $permitirEscolha): array
+    {
+        $municipioId = $this->resolverMunicipioId($dados, $user, $permitirEscolha);
+        if (!$municipioId) {
+            throw ValidationException::withMessages([
+                'municipio_id' => 'Seu participante não possui município preenchido. Atualize seu perfil para cadastrar agendamentos.',
+            ]);
+        }
+
+        $dados['municipio_id'] = $municipioId;
+
+        return $dados;
     }
 
     private function garantirNaoEfetivado(Agendamento $agendamento): void

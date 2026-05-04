@@ -8,7 +8,33 @@
   }
 
   $turmaSelecionada = old('turma', $agendamento->turma ?? '');
+  $podeEscolherMunicipio = $permiteEscolherMunicipio ?? false;
+  $municipioSelecionado = old('municipio_id', $agendamento->municipio_id ?? '');
 @endphp
+
+<div class="mb-3">
+  <label for="municipio_id" class="form-label">Município <span class="text-danger">*</span></label>
+  @if($podeEscolherMunicipio)
+    <select id="municipio_id" name="municipio_id"
+            class="form-select @error('municipio_id') is-invalid @enderror"
+            required>
+      <option value="">Selecione o município</option>
+      @foreach(($municipios ?? collect()) as $municipioOpcao)
+        <option value="{{ $municipioOpcao->id }}" @selected((string) $municipioSelecionado === (string) $municipioOpcao->id)>
+          {{ $municipioOpcao->nome_com_estado }}
+        </option>
+      @endforeach
+    </select>
+  @else
+    <input type="text" id="municipio_id"
+           class="form-control @error('municipio_id') is-invalid @enderror"
+           value="{{ $municipio?->nome_com_estado ?? 'Município não informado no perfil' }}"
+           disabled>
+  @endif
+  @error('municipio_id')
+    <div class="invalid-feedback d-block">{{ $message }}</div>
+  @enderror
+</div>
 
 <div class="mb-3">
   <label for="data_horario" class="form-label">Data e horário <span class="text-danger">*</span></label>
