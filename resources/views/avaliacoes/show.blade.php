@@ -43,10 +43,8 @@
           <dt class="col-md-4 text-muted">Modelo de avaliacao</dt>
           <dd class="col-md-8">{{ $avaliacao->templateAvaliacao->nome ?? '-' }}</dd>
 
-          @if($isUniversal)
           <dt class="col-md-4 text-muted">Descrição</dt>
           <dd class="col-md-8">{{ $avaliacao->descricao_universal ?: '-' }}</dd>
-          @endif
         </dl>
       </div>
     </div>

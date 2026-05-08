@@ -10,7 +10,7 @@
   <div class="card-body">
     <div class="row g-1 align-items-end">
       <div class="col-lg-3 col-md-6">
-        <label for="search" class="form-label">Buscar (momento, evento, participante ou modelo)</label>
+        <label for="search" class="form-label">Buscar (momento, evento, participante, modelo ou descrição)</label>
         <input type="text" class="form-control" id="search" name="search"
           value="{{ request('search') }}" placeholder="Digite para filtrar...">
       </div>
@@ -91,7 +91,12 @@
             <small class="d-block text-muted">Participante: {{ $participanteNome }}</small>
             @endif
           </td>
-          <td>{{ $avaliacao->templateAvaliacao->nome ?? '—' }}</td>
+          <td>
+            {{ $avaliacao->templateAvaliacao->nome ?? '—' }}
+            @if($avaliacao->descricao_universal)
+            <small class="d-block text-muted">Descrição: {{ $avaliacao->descricao_universal }}</small>
+            @endif
+          </td>
           <td>{{ $avaliacao->created_at ? $avaliacao->created_at->format('d/m/Y H:i') : '—' }}</td>
           <td class="text-end">
             <a href="{{ route('avaliacoes.show', $avaliacao) }}" class="btn btn-sm btn-outline-primary">Ver</a>

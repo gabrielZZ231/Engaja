@@ -41,6 +41,9 @@
             <p class="mb-0"><strong>Avaliação universal:</strong> {{ $avaliacao->descricao_universal ?: ($avaliacao->templateAvaliacao->nome ?? '-') }}</p>
           @else
             <p class="mb-0"><strong>Ação pedagógica:</strong> {{ $eventoNome ?? '-' }}</p>
+            @if($avaliacao->descricao_universal)
+              <p class="mb-0"><strong>Avaliação:</strong> {{ $avaliacao->descricao_universal }}</p>
+            @endif
           @endif
         </div>
 

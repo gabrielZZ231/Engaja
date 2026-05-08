@@ -58,7 +58,8 @@ class AvaliacaoController extends Controller
                     })
                     ->orWhereHas('inscricao.evento', function ($evento) use ($searchTerm) {
                         $evento->where('nome', 'like', '%'.$searchTerm.'%');
-                    });
+                    })
+                    ->orWhere('descricao_universal', 'like', '%'.$searchTerm.'%');
 
                 if (ctype_digit($searchTerm)) {
                     $nested->orWhere('id', (int) $searchTerm);
@@ -983,6 +984,7 @@ class AvaliacaoController extends Controller
             'inscricao_id' => ['nullable', Rule::exists('inscricaos', 'id')],
             'atividade_id' => ['required', Rule::exists('atividades', 'id')],
             'template_avaliacao_id' => ['required', Rule::exists('template_avaliacaos', 'id')],
+            'descricao_universal' => ['nullable', 'string', 'max:255'],
             'respostas' => ['nullable', 'array'],
             'anonima' => $anonRule,
         ]);
@@ -991,6 +993,7 @@ class AvaliacaoController extends Controller
             'inscricao_id' => $dados['inscricao_id'] ?? null,
             'atividade_id' => $dados['atividade_id'],
             'template_avaliacao_id' => $dados['template_avaliacao_id'],
+            'descricao_universal' => $dados['descricao_universal'] ?? null,
         ];
 
         if (! $avaliacaoId) {
@@ -1340,8 +1343,7 @@ class AvaliacaoController extends Controller
 
         if ($isUniversal) {
             return redirect()
-                ->route('avaliacao.formulario', $avaliacao)
-                ->with('success', 'Avaliação registrada com sucesso!');
+                ->route('avaliacao.formulario.obrigado', $avaliacao);
         }
 
         return redirect()
@@ -1351,6 +1353,15 @@ class AvaliacaoController extends Controller
                 'avaliacao_token' => null,
                 'avaliacao_disponivel' => false,
             ]);
+    }
+
+    public function formularioAvaliacaoObrigado(Avaliacao $avaliacao)
+    {
+        abort_unless($avaliacao->atividade_id === null, 404);
+
+        $avaliacao->load('templateAvaliacao');
+
+        return view('avaliacoes.obrigado', compact('avaliacao'));
     }
 
     private function regraRespostaParaQuestao(AvaliacaoQuestao $questao): array

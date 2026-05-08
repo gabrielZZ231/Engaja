@@ -57,7 +57,6 @@
               @enderror
             </div>
 
-            @if($universal)
             <div class="col-md-6">
               <label for="descricao_universal" class="form-label">Descrição</label>
               <input type="text" id="descricao_universal" name="descricao_universal"
@@ -68,7 +67,6 @@
               <div class="invalid-feedback">{{ $message }}</div>
               @enderror
             </div>
-            @endif
 
             @unless($universal)
             <div class="col-md-6 d-flex align-items-center">
