@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\Atividade;
+use App\Models\Avaliacao;
 use App\Models\Evento;
 use App\Models\Inscricao;
 use App\Models\Municipio;
@@ -176,8 +177,14 @@ class DashboardController extends Controller
             ->orderByDesc('dia')
             ->orderByDesc('hora_inicio')
             ->get(['id', 'evento_id', 'descricao', 'dia', 'hora_inicio']);
+        $avaliacoesUniversais = Avaliacao::query()
+            ->with('templateAvaliacao:id,nome')
+            ->whereNull('atividade_id')
+            ->orderBy('descricao_universal')
+            ->orderByDesc('created_at')
+            ->get(['id', 'template_avaliacao_id', 'descricao_universal', 'created_at']);
 
-        return view('dashboards.avaliacoes', compact('templates', 'eventos', 'atividades'));
+        return view('dashboards.avaliacoes', compact('templates', 'eventos', 'atividades', 'avaliacoesUniversais'));
     }
 
     public function avaliacoesData(Request $request, AvaliacaoRespostasDashboardService $avaliacaoRespostas)

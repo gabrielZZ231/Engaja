@@ -19,17 +19,18 @@
 
   <div class="card shadow-sm border-0 mb-3">
     <div class="card-body">
-      <div class="row g-3 align-items-end">
-        <div class="col-lg-3 col-md-6">
-          <label class="form-label text-muted small mb-1">Modelo</label>
-          <select class="form-select js-filter" id="f-template">
-            <option value="">Todos</option>
-            @foreach($templates as $template)
-            <option value="{{ $template->id }}" @selected(request('template_id') == $template->id)>{{ $template->nome }}</option>
-            @endforeach
-          </select>
+      <div class="mb-3">
+        <label class="form-label text-muted small mb-1">Tipo de formulário</label>
+        <div class="btn-group" role="group" aria-label="Tipo de formulário">
+          <input type="radio" class="btn-check js-filter" name="tipo-dashboard" id="tipo-momento" value="momento" checked>
+          <label class="btn btn-outline-secondary" for="tipo-momento">Por momento</label>
+
+          <input type="radio" class="btn-check js-filter" name="tipo-dashboard" id="tipo-universal" value="universal">
+          <label class="btn btn-outline-secondary" for="tipo-universal">Universais</label>
         </div>
-        <div class="col-lg-3 col-md-6">
+      </div>
+      <div class="row g-3 align-items-end">
+        <div class="col-lg-3 col-md-6 filter-momento">
           <label class="form-label text-muted small mb-1">Ação Pedagógica</label>
           <select class="form-select js-filter" id="f-evento">
             <option value="">Todos</option>
@@ -38,7 +39,18 @@
             @endforeach
           </select>
         </div>
-        <div class="col-lg-3 col-md-6">
+        <div class="col-lg-3 col-md-6 filter-universal d-none">
+          <label class="form-label text-muted small mb-1">Avaliação universal</label>
+          <select class="form-select js-filter" id="f-avaliacao-universal">
+            <option value="">Todas</option>
+            @foreach($avaliacoesUniversais as $avaliacaoUniversal)
+            <option value="{{ $avaliacaoUniversal->id }}">
+              {{ $avaliacaoUniversal->descricao_universal ?: ($avaliacaoUniversal->templateAvaliacao->nome ?? 'Avaliação universal') }}
+            </option>
+            @endforeach
+          </select>
+        </div>
+        <div class="col-lg-3 col-md-6 filter-momento">
           <label class="form-label text-muted small mb-1">Momento</label>
           <select class="form-select js-filter" id="f-atividade">
             <option value="">Selecione uma ação pedagógica</option>
@@ -65,11 +77,6 @@
           </div>
         </div>
       </div>
-      <div class="d-flex justify-content-between align-items-center mt-3">
-        <button class="btn btn-primary" id="btn-recarregar">
-          Atualizar agora
-        </button>
-      </div>
     </div>
   </div>
 
@@ -95,9 +102,9 @@
     <div class="col-lg-3 col-sm-6">
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body">
-          <p class="text-uppercase small text-muted mb-1">Ações Pedagógicas</p>
+          <p class="text-uppercase small text-muted mb-1" data-total-label="eventos">Ações Pedagógicas</p>
           <div class="h3 fw-bold mb-0" data-total="eventos">0</div>
-          <small class="text-muted">Com respostas vinculadas</small>
+          <small class="text-muted" data-total-help="eventos">Com respostas vinculadas</small>
         </div>
       </div>
     </div>
@@ -178,7 +185,6 @@
 
 @push('scripts')
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
-@vite(['resources/js/avaliacoes-distribuicao-charts.js'])
 @endpush
 
 <script>
@@ -188,9 +194,11 @@
 
   const endpoint = container.dataset.endpoint;
   const filters = {
-    template: document.getElementById('f-template'),
+    tipoMomento: document.getElementById('tipo-momento'),
+    tipoUniversal: document.getElementById('tipo-universal'),
     evento: document.getElementById('f-evento'),
     atividade: document.getElementById('f-atividade'),
+    avaliacaoUniversal: document.getElementById('f-avaliacao-universal'),
     de: document.getElementById('f-de'),
     ate: document.getElementById('f-ate'),
   };
@@ -200,8 +208,13 @@
     eventos: document.querySelector('[data-total=\"eventos\"]'),
     ultima: document.querySelector('[data-total=\"ultima\"]'),
   };
+  const totalLabels = {
+    eventos: document.querySelector('[data-total-label=\"eventos\"]'),
+  };
+  const totalHelps = {
+    eventos: document.querySelector('[data-total-help=\"eventos\"]'),
+  };
   const cardsQuestoes = document.getElementById('cards-questoes');
-  const refreshBtn = document.getElementById('btn-recarregar');
   const chartInstances = new Map();
   const chartPreferences = new Map();
   let cachedPerguntas = [];
@@ -216,18 +229,53 @@
   let textModalInstance = null;
   const palette = ['#421944', '#008BBC', '#FDB913', '#E62270', '#2EB57D', '#601F69', '#6C345E', '#9602C7', '#A95DB1', '#D9A8E2', '#ECDEEC'];
 
+  function currentTipo() {
+    return filters.tipoUniversal?.checked ? 'universal' : 'momento';
+  }
+
   function buildParams() {
     const params = new URLSearchParams();
-    if (filters.template.value) params.set('template_id', filters.template.value);
-    if (filters.evento.value) params.set('evento_id', filters.evento.value);
-    if (filters.atividade.value) params.set('atividade_id', filters.atividade.value);
+    const tipo = currentTipo();
+    params.set('tipo', tipo);
+    if (tipo === 'universal') {
+      if (filters.avaliacaoUniversal?.value) params.set('avaliacao_id', filters.avaliacaoUniversal.value);
+    } else {
+      if (filters.evento.value) params.set('evento_id', filters.evento.value);
+      if (filters.atividade.value) params.set('atividade_id', filters.atividade.value);
+    }
     if (filters.de.value) params.set('de', filters.de.value);
     if (filters.ate.value) params.set('ate', filters.ate.value);
     return params.toString();
   }
 
+  function updateModeUi() {
+    const tipo = currentTipo();
+    const universal = tipo === 'universal';
+
+    document.querySelectorAll('.filter-momento').forEach((el) => el.classList.toggle('d-none', universal));
+    document.querySelectorAll('.filter-universal').forEach((el) => el.classList.toggle('d-none', !universal));
+
+    if (filters.evento) filters.evento.disabled = universal;
+    if (filters.atividade) filters.atividade.disabled = universal || !filters.evento.value;
+    if (filters.avaliacaoUniversal) filters.avaliacaoUniversal.disabled = !universal;
+
+    if (totalLabels.eventos) {
+      totalLabels.eventos.textContent = universal ? 'Formulários universais' : 'Ações Pedagógicas';
+    }
+    if (totalHelps.eventos) {
+      totalHelps.eventos.textContent = universal ? 'Com respostas registradas' : 'Com respostas vinculadas';
+    }
+
+    updateAtividadeFilter();
+  }
+
   function updateAtividadeFilter() {
     if (!filters.evento || !filters.atividade) return;
+    if (currentTipo() === 'universal') {
+      filters.atividade.value = '';
+      filters.atividade.disabled = true;
+      return;
+    }
 
     const eventoId = filters.evento.value;
     const hasEvento = eventoId !== '';
@@ -509,18 +557,21 @@
     }
   }
 
-  updateAtividadeFilter();
+  updateModeUi();
 
   document.querySelectorAll('.js-filter').forEach((input) => {
     if (input === filters.evento) return;
-    input.addEventListener('change', loadData);
+    input.addEventListener('change', () => {
+      if (input === filters.tipoMomento || input === filters.tipoUniversal) {
+        updateModeUi();
+      }
+      loadData();
+    });
   });
   filters.evento?.addEventListener('change', () => {
     updateAtividadeFilter();
     loadData();
   });
-  refreshBtn.addEventListener('click', loadData);
-
   loadData();
 })();
 </script>

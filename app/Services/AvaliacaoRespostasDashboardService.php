@@ -19,16 +19,20 @@ class AvaliacaoRespostasDashboardService
 
         $submissoesBase = $this->filtrarSubmissoes($request);
         $submissoesTable = (new SubmissaoAvaliacao)->getTable();
+        $isUniversal = $this->isUniversalRequest($request);
         $totais = [
             'submissoes' => (clone $submissoesBase)->count(),
             'atividades' => (clone $submissoesBase)->distinct('atividade_id')->count('atividade_id'),
-            'eventos' => (clone $submissoesBase)
-                ->leftJoin('atividades', 'atividades.id', '=', "{$submissoesTable}.atividade_id")
-                ->distinct('atividades.evento_id')
-                ->count('atividades.evento_id'),
+            'eventos' => $isUniversal
+                ? (clone $submissoesBase)->distinct('avaliacao_id')->count('avaliacao_id')
+                : (clone $submissoesBase)
+                    ->leftJoin('atividades', 'atividades.id', '=', "{$submissoesTable}.atividade_id")
+                    ->distinct('atividades.evento_id')
+                    ->count('atividades.evento_id'),
             'respostas' => $respostas->count(),
             'questoes' => $perguntas->count(),
             'ultima' => optional($respostas->sortByDesc('created_at')->first())->created_at?->format('d/m/Y H:i'),
+            'modo' => $isUniversal ? 'universal' : 'momento',
         ];
 
         $recentes = $respostas
@@ -61,8 +65,10 @@ class AvaliacaoRespostasDashboardService
         $templateId = $request->integer('template_id');
         $eventoId = $request->integer('evento_id');
         $atividadeId = $request->integer('atividade_id');
+        $avaliacaoId = $request->integer('avaliacao_id');
         $de = $request->date('de');
         $ate = $request->date('ate');
+        $isUniversal = $this->isUniversalRequest($request);
 
         return RespostaAvaliacao::query()
             ->select([
@@ -77,11 +83,13 @@ class AvaliacaoRespostasDashboardService
                 'avaliacaoQuestao.escala',
                 'avaliacaoQuestao.indicador.dimensao',
                 'avaliacao.atividade.evento',
+                'avaliacao.templateAvaliacao',
             ])
-            ->whereHas('avaliacao', fn ($aq) => $aq->whereNotNull('atividade_id'))
+            ->whereHas('avaliacao', fn ($aq) => $isUniversal ? $aq->whereNull('atividade_id') : $aq->whereNotNull('atividade_id'))
             ->when($templateId, fn ($q) => $q->whereHas('avaliacao', fn ($aq) => $aq->where('template_avaliacao_id', $templateId)))
+            ->when($isUniversal && $avaliacaoId, fn ($q) => $q->where('avaliacao_id', $avaliacaoId))
             ->when($atividadeId, fn ($q) => $q->whereHas('avaliacao', fn ($aq) => $aq->where('atividade_id', $atividadeId)))
-            ->when($eventoId, fn ($q) => $q->whereHas('avaliacao.atividade', fn ($aq) => $aq->where('evento_id', $eventoId)))
+            ->when(! $isUniversal && $eventoId, fn ($q) => $q->whereHas('avaliacao.atividade', fn ($aq) => $aq->where('evento_id', $eventoId)))
             ->when($de, fn ($q) => $q->whereDate("{$respostasTable}.created_at", '>=', $de))
             ->when($ate, fn ($q) => $q->whereDate("{$respostasTable}.created_at", '<=', $ate))
             ->get();
@@ -93,16 +101,28 @@ class AvaliacaoRespostasDashboardService
         $templateId = $request->integer('template_id');
         $eventoId = $request->integer('evento_id');
         $atividadeId = $request->integer('atividade_id');
+        $avaliacaoId = $request->integer('avaliacao_id');
         $de = $request->date('de');
         $ate = $request->date('ate');
+        $isUniversal = $this->isUniversalRequest($request);
 
         return SubmissaoAvaliacao::query()
-            ->whereNotNull('atividade_id')
+            ->when(
+                $isUniversal,
+                fn ($q) => $q->whereNull('atividade_id')->where('universal', true),
+                fn ($q) => $q->whereNotNull('atividade_id')
+            )
             ->when($templateId, fn ($q) => $q->whereHas('avaliacao', fn ($aq) => $aq->where('template_avaliacao_id', $templateId)))
-            ->when($atividadeId, fn ($q) => $q->where('atividade_id', $atividadeId))
-            ->when($eventoId, fn ($q) => $q->whereHas('atividade', fn ($aq) => $aq->where('evento_id', $eventoId)))
+            ->when($isUniversal && $avaliacaoId, fn ($q) => $q->where('avaliacao_id', $avaliacaoId))
+            ->when(! $isUniversal && $atividadeId, fn ($q) => $q->where('atividade_id', $atividadeId))
+            ->when(! $isUniversal && $eventoId, fn ($q) => $q->whereHas('atividade', fn ($aq) => $aq->where('evento_id', $eventoId)))
             ->when($de, fn ($q) => $q->whereDate("{$submissoesTable}.created_at", '>=', $de))
             ->when($ate, fn ($q) => $q->whereDate("{$submissoesTable}.created_at", '<=', $ate));
+    }
+
+    private function isUniversalRequest(Request $request): bool
+    {
+        return $request->query('tipo') === 'universal';
     }
 
     public function montarPerguntas(Collection $respostas): Collection
