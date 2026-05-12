@@ -14,7 +14,7 @@
         Avaliação - {{ $tituloAvaliacao }}
       </h1>
       <p class="text-muted mb-0" style="text-align: justify">
-        Convidamos você a responder esta avaliação, expressando as suas opiniões, críticas e sugestões. 
+        Convidamos você a responder esta avaliação, expressando as suas opiniões, críticas e sugestões.
         Esta coleta de dados segue as diretrizes da LGPD. Suas respostas contribuirão para o aprimoramento do nosso trabalho.
       </p>
     </div>
@@ -156,6 +156,29 @@
                                     <p class="text-muted small">Opções não configuradas.</p>
                                   @endif
                                   @break
+
+                                @case('multipla')
+                                    @php
+                                        //transforma o valor num array válido
+                                        $respostasSelecionadas = is_array($valorAtual)
+                                            ? $valorAtual
+                                            : (json_decode($valorAtual, true) ?? []);
+                                    @endphp
+                                    <div class="d-flex flex-column gap-2 mt-2">
+                                        @foreach($questao->opcoes_resposta as $index => $opcao)
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox"
+                                                       name="respostas[{{ $questao->id }}][]"
+                                                       value="{{ $opcao }}"
+                                                       id="q_{{ $questao->id }}_op_{{ $index }}"
+                                                    {{ in_array($opcao, $respostasSelecionadas) ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="q_{{ $questao->id }}_op_{{ $index }}">
+                                                    {{ $opcao }}
+                                                </label>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @break
 
                                 @default
                                   <textarea name="respostas[{{ $questao->id }}]" class="form-control" rows="3" placeholder="Compartilhe sua percepção">{{ $valorAtual }}</textarea>

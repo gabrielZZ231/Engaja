@@ -37,13 +37,23 @@
                 Evidência: {{ $questao->evidencia->descricao ?? '—' }} |
                 Escala: {{ $questao->escala->descricao ?? '—' }}
               </div>
-              <div>
-                @if($resp)
-                  {!! nl2br(e($resp->resposta)) !!}
-                @else
-                  <span class="text-muted">Não respondida.</span>
-                @endif
-              </div>
+                <div>
+                    @if($resp)
+                        @php
+                            $exibicao = $resp->resposta;
+                            //verifica se a string parece um JSON
+                            if (is_string($exibicao) && in_array(substr(trim($exibicao), 0, 1), ['[', '{'])) {
+                                $decoded = json_decode($exibicao, true);
+                                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                                    $exibicao = implode(', ', $decoded);
+                                }
+                            }
+                        @endphp
+                        {!! nl2br(e($exibicao)) !!}
+                    @else
+                        <span class="text-muted">Não respondida.</span>
+                    @endif
+                </div>
             </div>
           @endforeach
         </div>

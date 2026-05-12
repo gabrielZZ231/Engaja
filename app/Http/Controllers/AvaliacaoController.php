@@ -881,7 +881,7 @@ class AvaliacaoController extends Controller
                     $validator->errors()->add("questoes_adicionais.$index.escala_id", 'Selecione uma escala quando o tipo da questão for Escala.');
                 }
 
-                if (($questao['tipo'] ?? null) === 'unica' && empty($this->normalizaOpcoesResposta($questao['opcoes_resposta'] ?? []))) {
+                if (in_array(($questao['tipo'] ?? null), ['unica', 'multipla']) && empty($this->normalizaOpcoesResposta($questao['opcoes_resposta'] ?? []))) {
                     $validator->errors()->add("questoes_adicionais.$index.opcoes_resposta", 'Informe pelo menos uma opção para questões do tipo "Resposta única".');
                 }
             });
@@ -905,7 +905,7 @@ class AvaliacaoController extends Controller
                 $dados['escala_id'] = null;
             }
 
-            $dados['opcoes_resposta'] = ($dados['tipo'] ?? null) === 'unica'
+            $dados['opcoes_resposta'] = in_array(($dados['tipo'] ?? null), ['unica', 'multipla'])
                 ? $this->normalizaOpcoesResposta($dados['opcoes_resposta'] ?? [])
                 : null;
 
@@ -1168,13 +1168,13 @@ class AvaliacaoController extends Controller
                 ]);
             }
 
-            $opcoesResposta = $tipo === 'unica'
+            $opcoesResposta = in_array($tipo, ['unica', 'multipla'])
                 ? $this->normalizaOpcoesResposta($opcoesResposta)
                 : null;
 
-            if ($tipo === 'unica' && empty($opcoesResposta)) {
+            if (in_array($tipo, ['unica', 'multipla']) && empty($opcoesResposta)) {
                 throw ValidationException::withMessages([
-                    "questoes.{$questao->id}.opcoes_resposta" => 'Informe pelo menos uma opção para questões do tipo "Resposta única".',
+                    "questoes.{$questao->id}.opcoes_resposta" => 'Informe pelo menos uma opção para questões de múltipla/única escolha.',
                 ]);
             }
 
@@ -1219,6 +1219,7 @@ class AvaliacaoController extends Controller
             'numero' => 'Número',
             'boolean' => 'Sim/Não',
             'unica' => 'Resposta única',
+            'multipla' => 'Múltipla escolha',
         ];
     }
 
@@ -1324,7 +1325,16 @@ class AvaliacaoController extends Controller
 
         $rules = [];
         foreach ($avaliacao->avaliacaoQuestoes as $questao) {
-            $rules["respostas.{$questao->id}"] = $this->regraRespostaParaQuestao($questao);
+            if ($questao->tipo === 'multipla') {
+                //exige que seja um array e valida cada item selecionado
+                $rules["respostas.{$questao->id}"] = ['nullable', 'array'];
+                $opcoes = $questao->opcoes_resposta ?? [];
+                if (!empty($opcoes)) {
+                    $rules["respostas.{$questao->id}.*"] = ['string', Rule::in($opcoes)];
+                }
+            } else {
+                $rules["respostas.{$questao->id}"] = $this->regraRespostaParaQuestao($questao);
+            }
         }
 
         $dados = $request->validate($rules);
@@ -1350,7 +1360,7 @@ class AvaliacaoController extends Controller
                     'avaliacao_id' => $avaliacao->id,
                     'avaliacao_questao_id' => $questao->id,
                     'submissao_avaliacao_id' => $submissao->id,
-                    'resposta' => $valor,
+                    'resposta' => is_array($valor) ? json_encode($valor, JSON_UNESCAPED_UNICODE) : $valor,
                 ]);
             }
 

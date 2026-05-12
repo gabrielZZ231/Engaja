@@ -314,7 +314,7 @@
         const wrapper = card.querySelector('[data-resposta-unica-wrapper]');
         if (!tipoSelect || !wrapper) return;
 
-        const mostrar = tipoSelect.value === 'unica';
+        const mostrar = tipoSelect.value === 'unica' || tipoSelect.value === 'multipla';
         wrapper.style.display = mostrar ? '' : 'none';
 
         if (mostrar) {

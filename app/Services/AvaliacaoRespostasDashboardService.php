@@ -204,6 +204,38 @@ class AvaliacaoRespostasDashboardService
                     return $bloco;
                 }
 
+                if ($tipo === 'multipla') {
+                    $opcoesConfiguradas = $questao?->opcoes_resposta ?? [];
+
+                    $opcoes = collect($opcoesConfiguradas)
+                        ->map(fn ($opcao) => is_string($opcao) ? trim($opcao) : '')
+                        ->filter()
+                        ->values()
+                        ->all();
+
+                    $contagem = array_fill_keys($opcoes, 0);
+
+                    foreach ($items as $resposta) {
+                        //a resposta múltipla é salva como string JSON
+                        $valores = is_string($resposta->resposta) ? json_decode($resposta->resposta, true) : $resposta->resposta;
+
+                        if (is_array($valores)) {
+                            foreach ($valores as $valor) {
+                                $v = trim((string) $valor);
+                                if ($v === '') continue;
+                                if (!array_key_exists($v, $contagem)) {
+                                    $contagem[$v] = 0;
+                                }
+                                $contagem[$v]++;
+                            }
+                        }
+                    }
+
+                    $bloco['labels'] = array_keys($contagem);
+                    $bloco['values'] = array_values($contagem);
+                    return $bloco;
+                }
+
                 if ($tipo === 'numero') {
                     $numeros = $items->map(function ($r) {
                         $v = $this->respostaParaTexto($r->resposta);
