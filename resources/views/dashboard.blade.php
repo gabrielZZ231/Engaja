@@ -5,11 +5,12 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start mb-3 gap-2">
         <div>
             <p class="text-uppercase small text-muted mb-1">Dashboards</p>
-            <h1 class="h4 mb-0">Presencas e inscricoes</h1>
-            <p class="text-muted small mb-0">Visual completo das acoes pedagogicas com expansao de presencas e exportacao.</p>
+            <h1 class="h4 mb-0">Presenças e inscrições</h1>
+            <p class="text-muted small mb-0">Visual completo das ações pedagógicas com expansão de presenças e exportação.</p>
         </div>
         <div class="d-flex gap-2">
             <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary btn-sm">Hub de dashboards</a>
+            <a href="{{ route('dashboards.bi') }}" class="btn btn-outline-secondary btn-sm">Dashboard BI</a>
             <a href="{{ route('dashboards.avaliacoes') }}" class="btn btn-outline-primary btn-sm">Dashboard de respostas</a>
         </div>
     </div>
@@ -175,9 +176,10 @@
                                                     <thead class="table-primary">
                                                         <tr>
                                                             <th style="width: 35%;">Nome</th>
-                                                            <th style="width: 30%;">E-mail</th>
-                                                            <th style="width: 18%;">CPF</th>
-                                                            <th style="width: 17%;">Tag</th>
+                                                            <th style="width: 25%;">E-mail</th>
+                                                            <th style="width: 15%;">CPF</th>
+                                                            <th style="width: 13%;">Tag</th>
+                                                            <th style="width: 12%;">Status</th>
                                                         </tr>
                                                     </thead>
                                                     <tbody>
@@ -186,12 +188,14 @@
                                                                 $insc = optional($p->inscricao);
                                                                 $part = optional($insc->participante);
                                                                 $user = optional($part->user);
+                                                                $statusLabel = ($insc->ouvinte ?? false) ? 'Ouvinte' : 'Presente';
                                                             @endphp
                                                             <tr>
                                                                 <td>{{ $user->name ?? 'Participante #'.$part->id }}</td>
                                                                 <td>{{ $user->email ?? '-' }}</td>
                                                                 <td>{{ $part->cpf ?: '-' }}</td>
                                                                 <td>{{ $part->tag ?: '-' }}</td>
+                                                                <td>{{ $statusLabel }}</td>
                                                             </tr>
                                                         @endforeach
                                                     </tbody>

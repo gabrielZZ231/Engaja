@@ -6,30 +6,32 @@
     <div class="d-flex flex-wrap justify-content-between align-items-start gap-2">
       <div>
         <p class="text-uppercase small text-muted mb-1">Dashboards</p>
-        <h1 class="h3 fw-bold mb-1">Respostas dos formularios</h1>
-        <p class="text-muted mb-0">Visual limpo, na paleta do projeto, com filtros instantaneos.</p>
+        <h1 class="h3 fw-bold mb-1">Respostas dos formulários</h1>
+        {{-- <p class="text-muted mb-0">Visual limpo, na paleta do projeto, com filtros instantâneos.</p> --}}
       </div>
       <div class="d-flex gap-2">
         <a href="{{ route('dashboard') }}" class="btn btn-outline-secondary">Hub de dashboards</a>
-        <a href="{{ route('dashboards.presencas') }}" class="btn btn-outline-primary">Ir para presencas</a>
+        <a href="{{ route('dashboards.bi') }}" class="btn btn-outline-secondary">Ir para BI</a>
+        <a href="{{ route('dashboards.presencas') }}" class="btn btn-outline-primary">Ir para presenças</a>
       </div>
     </div>
   </div>
 
   <div class="card shadow-sm border-0 mb-3">
     <div class="card-body">
-      <div class="row g-3 align-items-end">
-        <div class="col-lg-3 col-md-6">
-          <label class="form-label text-muted small mb-1">Modelo</label>
-          <select class="form-select js-filter" id="f-template">
-            <option value="">Todos</option>
-            @foreach($templates as $template)
-            <option value="{{ $template->id }}" @selected(request('template_id') == $template->id)>{{ $template->nome }}</option>
-            @endforeach
-          </select>
+      <div class="mb-3">
+        <label class="form-label text-muted small mb-1">Tipo de formulário</label>
+        <div class="btn-group" role="group" aria-label="Tipo de formulário">
+          <input type="radio" class="btn-check js-filter" name="tipo-dashboard" id="tipo-momento" value="momento" checked>
+          <label class="btn btn-outline-secondary" for="tipo-momento">Por momento</label>
+
+          <input type="radio" class="btn-check js-filter" name="tipo-dashboard" id="tipo-universal" value="universal">
+          <label class="btn btn-outline-secondary" for="tipo-universal">Universais</label>
         </div>
-        <div class="col-lg-3 col-md-6">
-          <label class="form-label text-muted small mb-1">Evento</label>
+      </div>
+      <div class="row g-3 align-items-end">
+        <div class="col-lg-3 col-md-6 filter-momento">
+          <label class="form-label text-muted small mb-1">Ação Pedagógica</label>
           <select class="form-select js-filter" id="f-evento">
             <option value="">Todos</option>
             @foreach($eventos as $evento)
@@ -37,17 +39,27 @@
             @endforeach
           </select>
         </div>
-        <div class="col-lg-3 col-md-6">
-          <label class="form-label text-muted small mb-1">Atividade / momento</label>
-          <select class="form-select js-filter" id="f-atividade">
+        <div class="col-lg-3 col-md-6 filter-universal d-none">
+          <label class="form-label text-muted small mb-1">Avaliação universal</label>
+          <select class="form-select js-filter" id="f-avaliacao-universal">
             <option value="">Todas</option>
+            @foreach($avaliacoesUniversais as $avaliacaoUniversal)
+            <option value="{{ $avaliacaoUniversal->id }}">
+              {{ $avaliacaoUniversal->descricao_universal ?: ($avaliacaoUniversal->templateAvaliacao->nome ?? 'Avaliação universal') }}
+            </option>
+            @endforeach
+          </select>
+        </div>
+        <div class="col-lg-3 col-md-6 filter-momento">
+          <label class="form-label text-muted small mb-1">Momento</label>
+          <select class="form-select js-filter" id="f-atividade">
+            <option value="">Selecione uma ação pedagógica</option>
             @foreach($atividades as $atividade)
             @php
               $diaFormatado = $atividade->dia ? \Illuminate\Support\Carbon::parse($atividade->dia)->format('d/m') : '';
             @endphp
-            <option value="{{ $atividade->id }}">
+            <option value="{{ $atividade->id }}" data-evento-id="{{ $atividade->evento_id }}">
               {{ $atividade->descricao ?? 'Momento' }} - {{ $diaFormatado }} {{ $atividade->hora_inicio }}
-              @if($atividade->evento) ({{ $atividade->evento->nome }}) @endif
             </option>
             @endforeach
           </select>
@@ -59,16 +71,11 @@
               <input type="date" class="form-control js-filter" id="f-de">
             </div>
             <div class="col-6">
-              <label class="form-label text-muted small mb-1">Ate</label>
+              <label class="form-label text-muted small mb-1">Até</label>
               <input type="date" class="form-control js-filter" id="f-ate">
             </div>
           </div>
         </div>
-      </div>
-      <div class="d-flex justify-content-between align-items-center mt-3">
-        <button class="btn btn-primary" id="btn-recarregar">
-          Atualizar agora
-        </button>
       </div>
     </div>
   </div>
@@ -77,7 +84,7 @@
     <div class="col-lg-3 col-sm-6">
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body">
-          <p class="text-uppercase small text-muted mb-1">Submissoes</p>
+          <p class="text-uppercase small text-muted mb-1">Submissões</p>
           <div class="h3 fw-bold mb-0" data-total="submissoes">0</div>
           <small class="text-muted">Respostas completas registradas</small>
         </div>
@@ -86,7 +93,7 @@
     <div class="col-lg-3 col-sm-6">
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body">
-          <p class="text-uppercase small text-muted mb-1">Questoes</p>
+          <p class="text-uppercase small text-muted mb-1">Questões</p>
           <div class="h3 fw-bold mb-0" data-total="questoes">0</div>
           <small class="text-muted">Com alguma resposta</small>
         </div>
@@ -95,18 +102,18 @@
     <div class="col-lg-3 col-sm-6">
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body">
-          <p class="text-uppercase small text-muted mb-1">Eventos</p>
+          <p class="text-uppercase small text-muted mb-1" data-total-label="eventos">Ações Pedagógicas</p>
           <div class="h3 fw-bold mb-0" data-total="eventos">0</div>
-          <small class="text-muted">Com respostas vinculadas</small>
+          <small class="text-muted" data-total-help="eventos">Com respostas vinculadas</small>
         </div>
       </div>
     </div>
     <div class="col-lg-3 col-sm-6">
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body">
-          <p class="text-uppercase small text-muted mb-1">Ultima resposta</p>
+          <p class="text-uppercase small text-muted mb-1">Última resposta</p>
           <div class="h3 fw-bold mb-0" data-total="ultima">-</div>
-          <small class="text-muted">Horario da ultima entrada</small>
+          <small class="text-muted">Horário da última entrada</small>
         </div>
       </div>
     </div>
@@ -115,14 +122,14 @@
   <div class="row g-3">
     <div class="col-12">
       <div class="d-flex justify-content-between align-items-center mb-2">
-        <h2 class="h5 fw-bold mb-0">Distribuicao por questao</h2>
+        <h2 class="h5 fw-bold mb-0">Distribuição por questão</h2>
         <span class="badge bg-primary-subtle text-primary">Interativo</span>
       </div>
       <div class="row g-3" id="cards-questoes">
         <div class="col-12" id="placeholder-card">
           <div class="card border-0 shadow-sm">
             <div class="card-body text-center text-muted">
-              Carregando graficos...
+              Carregando gráficos...
             </div>
           </div>
         </div>
@@ -146,24 +153,40 @@
   </div>
 </div>
 
-<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+@push('styles')
 <style>
+  @media (min-width: 768px) {
+    #cards-questoes > .col-md-6:only-child,
+    #cards-questoes > .col-md-6:nth-child(odd):nth-last-child(1) {
+      flex: 0 0 100%;
+      max-width: 100%;
+    }
+  }
   @media (max-width: 576px) {
-    #cards-questoes .question-header {
+    #cards-questoes .question-header,
+    #cards-questoes-momento .question-header {
       flex-direction: column;
       align-items: flex-start;
       gap: 0.5rem;
     }
-    #cards-questoes .question-controls {
+    #cards-questoes .question-controls,
+    #cards-questoes-momento .question-controls {
       width: 100%;
       justify-content: flex-start;
     }
-    #cards-questoes .question-controls select {
+    #cards-questoes .question-controls select,
+    #cards-questoes-momento .question-controls select {
       width: 100%;
       max-width: none;
     }
   }
 </style>
+@endpush
+
+@push('scripts')
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+@endpush
+
 <script>
 (() => {
   const container = document.getElementById('avaliacoes-dashboard');
@@ -171,9 +194,11 @@
 
   const endpoint = container.dataset.endpoint;
   const filters = {
-    template: document.getElementById('f-template'),
+    tipoMomento: document.getElementById('tipo-momento'),
+    tipoUniversal: document.getElementById('tipo-universal'),
     evento: document.getElementById('f-evento'),
     atividade: document.getElementById('f-atividade'),
+    avaliacaoUniversal: document.getElementById('f-avaliacao-universal'),
     de: document.getElementById('f-de'),
     ate: document.getElementById('f-ate'),
   };
@@ -183,11 +208,20 @@
     eventos: document.querySelector('[data-total=\"eventos\"]'),
     ultima: document.querySelector('[data-total=\"ultima\"]'),
   };
+  const totalLabels = {
+    eventos: document.querySelector('[data-total-label=\"eventos\"]'),
+  };
+  const totalHelps = {
+    eventos: document.querySelector('[data-total-help=\"eventos\"]'),
+  };
   const cardsQuestoes = document.getElementById('cards-questoes');
-  const refreshBtn = document.getElementById('btn-recarregar');
   const chartInstances = new Map();
   const chartPreferences = new Map();
   let cachedPerguntas = [];
+  const atividadePlaceholder = filters.atividade?.querySelector('option[value=""]');
+  const atividadeOptions = filters.atividade
+    ? Array.from(filters.atividade.options).filter((option) => option.value !== '')
+    : [];
   const textModalEl = document.getElementById('textAnswersModal');
   const textModalTitle = textModalEl?.querySelector('.js-text-modal-title');
   const textModalList = textModalEl?.querySelector('.js-text-modal-list');
@@ -195,14 +229,77 @@
   let textModalInstance = null;
   const palette = ['#421944', '#008BBC', '#FDB913', '#E62270', '#2EB57D', '#601F69', '#6C345E', '#9602C7', '#A95DB1', '#D9A8E2', '#ECDEEC'];
 
+  function currentTipo() {
+    return filters.tipoUniversal?.checked ? 'universal' : 'momento';
+  }
+
   function buildParams() {
     const params = new URLSearchParams();
-    if (filters.template.value) params.set('template_id', filters.template.value);
-    if (filters.evento.value) params.set('evento_id', filters.evento.value);
-    if (filters.atividade.value) params.set('atividade_id', filters.atividade.value);
+    const tipo = currentTipo();
+    params.set('tipo', tipo);
+    if (tipo === 'universal') {
+      if (filters.avaliacaoUniversal?.value) params.set('avaliacao_id', filters.avaliacaoUniversal.value);
+    } else {
+      if (filters.evento.value) params.set('evento_id', filters.evento.value);
+      if (filters.atividade.value) params.set('atividade_id', filters.atividade.value);
+    }
     if (filters.de.value) params.set('de', filters.de.value);
     if (filters.ate.value) params.set('ate', filters.ate.value);
     return params.toString();
+  }
+
+  function updateModeUi() {
+    const tipo = currentTipo();
+    const universal = tipo === 'universal';
+
+    document.querySelectorAll('.filter-momento').forEach((el) => el.classList.toggle('d-none', universal));
+    document.querySelectorAll('.filter-universal').forEach((el) => el.classList.toggle('d-none', !universal));
+
+    if (filters.evento) filters.evento.disabled = universal;
+    if (filters.atividade) filters.atividade.disabled = universal || !filters.evento.value;
+    if (filters.avaliacaoUniversal) filters.avaliacaoUniversal.disabled = !universal;
+
+    if (totalLabels.eventos) {
+      totalLabels.eventos.textContent = universal ? 'Formulários universais' : 'Ações Pedagógicas';
+    }
+    if (totalHelps.eventos) {
+      totalHelps.eventos.textContent = universal ? 'Com respostas registradas' : 'Com respostas vinculadas';
+    }
+
+    updateAtividadeFilter();
+  }
+
+  function updateAtividadeFilter() {
+    if (!filters.evento || !filters.atividade) return;
+    if (currentTipo() === 'universal') {
+      filters.atividade.value = '';
+      filters.atividade.disabled = true;
+      return;
+    }
+
+    const eventoId = filters.evento.value;
+    const hasEvento = eventoId !== '';
+
+    filters.atividade.disabled = !hasEvento;
+
+    if (atividadePlaceholder) {
+      atividadePlaceholder.textContent = hasEvento ? 'Todas' : 'Selecione uma ação pedagógica';
+    }
+
+    let selectedOptionVisible = !filters.atividade.value;
+    atividadeOptions.forEach((option) => {
+      const belongsToEvento = option.dataset.eventoId === eventoId;
+      option.hidden = !hasEvento || !belongsToEvento;
+      option.disabled = !hasEvento || !belongsToEvento;
+
+      if (option.selected && belongsToEvento) {
+        selectedOptionVisible = true;
+      }
+    });
+
+    if (!hasEvento || !selectedOptionVisible) {
+      filters.atividade.value = '';
+    }
   }
 
   function setLoading(state) {
@@ -276,6 +373,7 @@
     if (pergunta.tipo === 'boolean') return 'doughnut';
     if (pergunta.tipo === 'numero') return 'line';
     if (pergunta.tipo === 'escala') return 'bar';
+    if (pergunta.tipo === 'unica') return 'bar';
     return labels.length > 3 ? 'polarArea' : 'bar';
   }
 
@@ -459,11 +557,21 @@
     }
   }
 
-  document.querySelectorAll('.js-filter').forEach((input) => {
-    input.addEventListener('change', loadData);
-  });
-  refreshBtn.addEventListener('click', loadData);
+  updateModeUi();
 
+  document.querySelectorAll('.js-filter').forEach((input) => {
+    if (input === filters.evento) return;
+    input.addEventListener('change', () => {
+      if (input === filters.tipoMomento || input === filters.tipoUniversal) {
+        updateModeUi();
+      }
+      loadData();
+    });
+  });
+  filters.evento?.addEventListener('change', () => {
+    updateAtividadeFilter();
+    loadData();
+  });
   loadData();
 })();
 </script>

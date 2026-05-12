@@ -50,11 +50,10 @@ $theme-colors: map-merge(
   }
 }
 
-.form-control, .form-select {
-    border-color: #ced4da;
-   
-    &:focus {
-        border-color: $engaja-teal !important;
-        box-shadow: 0 0 0 0.2rem rgba($engaja-teal, 0.25);
-    }
+:root {
+  --engaja-purple: #{$engaja-purple};
+  --engaja-blue:   #{$engaja-blue};
+  --engaja-yellow: #{$engaja-yellow};
+  --engaja-pink:   #{$engaja-pink};
+  --engaja-green:  #{$engaja-green};
 }
