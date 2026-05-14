@@ -25,6 +25,9 @@
           <input type="radio" class="btn-check js-filter" name="tipo-dashboard" id="tipo-momento" value="momento" checked>
           <label class="btn btn-outline-secondary" for="tipo-momento">Por momento</label>
 
+          <input type="radio" class="btn-check js-filter" name="tipo-dashboard" id="tipo-transcricao" value="transcricao">
+          <label class="btn btn-outline-secondary" for="tipo-transcricao">Transcrições</label>
+
           <input type="radio" class="btn-check js-filter" name="tipo-dashboard" id="tipo-universal" value="universal">
           <label class="btn btn-outline-secondary" for="tipo-universal">Universais</label>
         </div>
@@ -195,6 +198,7 @@
   const endpoint = container.dataset.endpoint;
   const filters = {
     tipoMomento: document.getElementById('tipo-momento'),
+    tipoTranscricao: document.getElementById('tipo-transcricao'),
     tipoUniversal: document.getElementById('tipo-universal'),
     evento: document.getElementById('f-evento'),
     atividade: document.getElementById('f-atividade'),
@@ -230,7 +234,9 @@
   const palette = ['#421944', '#008BBC', '#FDB913', '#E62270', '#2EB57D', '#601F69', '#6C345E', '#9602C7', '#A95DB1', '#D9A8E2', '#ECDEEC'];
 
   function currentTipo() {
-    return filters.tipoUniversal?.checked ? 'universal' : 'momento';
+    if (filters.tipoUniversal?.checked) return 'universal';
+    if (filters.tipoTranscricao?.checked) return 'transcricao';
+    return 'momento';
   }
 
   function buildParams() {

@@ -19,7 +19,8 @@ class AvaliacaoRespostasDashboardService
 
         $submissoesBase = $this->filtrarSubmissoes($request);
         $submissoesTable = (new SubmissaoAvaliacao)->getTable();
-        $isUniversal = $this->isUniversalRequest($request);
+        $tipo = $this->tipoRequest($request);
+        $isUniversal = $tipo === 'universal';
         $totais = [
             'submissoes' => (clone $submissoesBase)->count(),
             'atividades' => (clone $submissoesBase)->distinct('atividade_id')->count('atividade_id'),
@@ -32,7 +33,7 @@ class AvaliacaoRespostasDashboardService
             'respostas' => $respostas->count(),
             'questoes' => $perguntas->count(),
             'ultima' => optional($respostas->sortByDesc('created_at')->first())->created_at?->format('d/m/Y H:i'),
-            'modo' => $isUniversal ? 'universal' : 'momento',
+            'modo' => $tipo,
         ];
 
         $recentes = $respostas
@@ -68,7 +69,8 @@ class AvaliacaoRespostasDashboardService
         $avaliacaoId = $request->integer('avaliacao_id');
         $de = $request->date('de');
         $ate = $request->date('ate');
-        $isUniversal = $this->isUniversalRequest($request);
+        $tipo = $this->tipoRequest($request);
+        $isUniversal = $tipo === 'universal';
 
         return RespostaAvaliacao::query()
             ->select([
@@ -85,7 +87,19 @@ class AvaliacaoRespostasDashboardService
                 'avaliacao.atividade.evento',
                 'avaliacao.templateAvaliacao',
             ])
-            ->whereHas('avaliacao', fn ($aq) => $isUniversal ? $aq->whereNull('atividade_id') : $aq->whereNotNull('atividade_id'))
+            ->whereHas('avaliacao', function ($aq) use ($tipo) {
+                if ($tipo === 'universal') {
+                    $aq->whereNull('atividade_id');
+                    return;
+                }
+
+                $aq->whereNotNull('atividade_id');
+                if ($tipo === 'transcricao') {
+                    $aq->where('transcricao', true);
+                } else {
+                    $aq->where('transcricao', false);
+                }
+            })
             ->when($templateId, fn ($q) => $q->whereHas('avaliacao', fn ($aq) => $aq->where('template_avaliacao_id', $templateId)))
             ->when($isUniversal && $avaliacaoId, fn ($q) => $q->where('avaliacao_id', $avaliacaoId))
             ->when($atividadeId, fn ($q) => $q->whereHas('avaliacao', fn ($aq) => $aq->where('atividade_id', $atividadeId)))
@@ -104,7 +118,8 @@ class AvaliacaoRespostasDashboardService
         $avaliacaoId = $request->integer('avaliacao_id');
         $de = $request->date('de');
         $ate = $request->date('ate');
-        $isUniversal = $this->isUniversalRequest($request);
+        $tipo = $this->tipoRequest($request);
+        $isUniversal = $tipo === 'universal';
 
         return SubmissaoAvaliacao::query()
             ->when(
@@ -112,6 +127,8 @@ class AvaliacaoRespostasDashboardService
                 fn ($q) => $q->whereNull('atividade_id')->where('universal', true),
                 fn ($q) => $q->whereNotNull('atividade_id')
             )
+            ->when($tipo === 'transcricao', fn ($q) => $q->whereHas('avaliacao', fn ($aq) => $aq->where('transcricao', true)))
+            ->when($tipo === 'momento', fn ($q) => $q->whereHas('avaliacao', fn ($aq) => $aq->where('transcricao', false)))
             ->when($templateId, fn ($q) => $q->whereHas('avaliacao', fn ($aq) => $aq->where('template_avaliacao_id', $templateId)))
             ->when($isUniversal && $avaliacaoId, fn ($q) => $q->where('avaliacao_id', $avaliacaoId))
             ->when(! $isUniversal && $atividadeId, fn ($q) => $q->where('atividade_id', $atividadeId))
@@ -120,9 +137,13 @@ class AvaliacaoRespostasDashboardService
             ->when($ate, fn ($q) => $q->whereDate("{$submissoesTable}.created_at", '<=', $ate));
     }
 
-    private function isUniversalRequest(Request $request): bool
+    private function tipoRequest(Request $request): string
     {
-        return $request->query('tipo') === 'universal';
+        $tipo = $request->query('tipo');
+
+        return in_array($tipo, ['universal', 'momento', 'transcricao'], true)
+            ? $tipo
+            : 'momento';
     }
 
     public function montarPerguntas(Collection $respostas): Collection
@@ -155,7 +176,7 @@ class AvaliacaoRespostasDashboardService
                     $invalidos = $items->count() - $sim - $nao;
                     $validTotal = $sim + $nao;
 
-                    $bloco['labels'] = ['Sim', 'Nao'];
+                    $bloco['labels'] = ['Sim', 'Não'];
                     $bloco['values'] = [$sim, $nao];
                     if ($invalidos > 0) {
                         $bloco['labels'][] = 'Indefinido';
@@ -187,7 +208,7 @@ class AvaliacaoRespostasDashboardService
 
                     $media = $this->calcularMediaNumerica($items);
                     $bloco['media'] = $media;
-                    $bloco['resumo'] = $media !== null ? 'Media '.number_format($media, 1, ',', '.') : null;
+                    $bloco['resumo'] = $media !== null ? 'Média '.number_format($media, 1, ',', '.') : null;
 
                     return $bloco;
                 }
@@ -251,7 +272,7 @@ class AvaliacaoRespostasDashboardService
                     $bloco['max'] = $numeros->isEmpty() ? null : $numeros->max();
                     $bloco['resumo'] = $numeros->isEmpty()
                         ? null
-                        : 'Media '.number_format((float) $media, 2, ',', '.');
+                        : 'Média '.number_format((float) $media, 2, ',', '.');
 
                     return $bloco;
                 }

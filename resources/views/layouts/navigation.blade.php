@@ -43,6 +43,8 @@
             <li><a class="dropdown-item" href="{{ route('templates-avaliacao.index') }}">Modelos de avaliação</a></li>
             <li><hr class="dropdown-divider"></li>
             <li><a class="dropdown-item" href="{{ route('avaliacoes.index') }}">Avaliações dos Participantes</a></li>
+            <li><a class="dropdown-item" href="{{ route('avaliacoes-universais.index') }}">Avaliações universais</a></li>
+            <li><a class="dropdown-item" href="{{ route('avaliacoes-transcricoes.index') }}">Transcrições de avaliação</a></li>
           </ul>
         </li>
         @endhasanyrole

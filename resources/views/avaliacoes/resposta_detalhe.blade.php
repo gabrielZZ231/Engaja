@@ -3,9 +3,10 @@
 @section('content')
 @php
   $isUniversal = $avaliacao->atividade_id === null;
-  $respondente = $isUniversal
-      ? 'resposta anônima'
-      : (optional($submissao->presenca->inscricao->participante->user)->name ?? 'N/A');
+  $isTranscricao = $avaliacao->transcricao;
+    $respondente = ($isUniversal || $isTranscricao)
+      ? 'resposta anonima'
+      : ($submissao->presenca?->inscricao?->participante?->user?->name ?? 'N/A');
 @endphp
 <div class="row justify-content-center">
   <div class="col-xl-9">
@@ -20,6 +21,9 @@
           <strong>Enviado em:</strong> {{ $submissao->created_at->format('d/m/Y H:i') }}<br>
           @if($isUniversal)
           <strong>Avaliação universal:</strong> {{ $avaliacao->descricao_universal ?: 'Sem descrição' }}
+          @elseif($isTranscricao)
+          <strong>Transcrição:</strong> {{ $avaliacao->descricao_universal ?: 'Sem descrição' }}<br>
+          <strong>Momento:</strong> {{ $avaliacao->atividade->descricao ?? 'N/A' }} — {{ $avaliacao->atividade->evento->nome ?? 'N/A' }}
           @else
           <strong>Atividade:</strong> {{ $avaliacao->atividade->descricao ?? 'N/A' }} — {{ $avaliacao->atividade->evento->nome ?? 'N/A' }}
           @endif
@@ -40,14 +44,20 @@
                 <div>
                     @if($resp)
                         @php
-                            $exibicao = $resp->resposta;
-                            //verifica se a string parece um JSON
-                            if (is_string($exibicao) && in_array(substr(trim($exibicao), 0, 1), ['[', '{'])) {
-                                $decoded = json_decode($exibicao, true);
-                                if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
-                                    $exibicao = implode(', ', $decoded);
-                                }
+                          $exibicao = $resp->resposta;
+                          if ($questao->tipo === 'boolean') {
+                            $normalizado = is_bool($exibicao) ? ($exibicao ? '1' : '0') : (string) $exibicao;
+                            if ($normalizado === '1' || strtolower($normalizado) === 'true') {
+                              $exibicao = 'Sim';
+                            } elseif ($normalizado === '0' || strtolower($normalizado) === 'false') {
+                              $exibicao = 'Não';
                             }
+                          } elseif (is_string($exibicao) && in_array(substr(trim($exibicao), 0, 1), ['[', '{'])) {
+                            $decoded = json_decode($exibicao, true);
+                            if (json_last_error() === JSON_ERROR_NONE && is_array($decoded)) {
+                              $exibicao = implode(', ', $decoded);
+                            }
+                          }
                         @endphp
                         {!! nl2br(e($exibicao)) !!}
                     @else

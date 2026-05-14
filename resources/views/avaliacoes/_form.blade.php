@@ -3,9 +3,10 @@
 @section('content')
 @php
   $isUniversal = $isUniversal ?? false;
+  $isTranscricao = $isTranscricao ?? false;
   $tituloAvaliacao = $isUniversal
       ? ($avaliacao->descricao_universal ?: ($avaliacao->templateAvaliacao->nome ?? 'Avaliação universal'))
-      : ($atividade?->descricao ?? $avaliacao->templateAvaliacao->nome ?? 'Avaliação universal');
+      : ($atividade?->descricao ?? $avaliacao->templateAvaliacao->nome ?? 'Avaliação');
 @endphp
 <div class="row justify-content-center">
   <div class="col-xl-8">
@@ -34,11 +35,15 @@
           $formBloqueado = $jaRespondeu ?? false;
           $formularioFechado = $formularioFechado ?? false;
           $somenteVisualizacao = $somenteVisualizacao ?? false;
+          $exigePresenca = ! $isUniversal && ! $isTranscricao;
         @endphp
 
         <div class="mb-4">
           @if($isUniversal)
             <p class="mb-0"><strong>Avaliação universal:</strong> {{ $avaliacao->descricao_universal ?: ($avaliacao->templateAvaliacao->nome ?? '-') }}</p>
+          @elseif($isTranscricao)
+            <p class="mb-0"><strong>Transcrição:</strong> {{ $avaliacao->descricao_universal ?: ($avaliacao->templateAvaliacao->nome ?? '-') }}</p>
+            <p class="mb-0"><strong>Momento:</strong> {{ $atividade?->descricao ?? '-' }}</p>
           @else
             <p class="mb-0"><strong>Ação pedagógica:</strong> {{ $eventoNome ?? '-' }}</p>
             @if($avaliacao->descricao_universal)
@@ -47,7 +52,7 @@
           @endif
         </div>
 
-        @if(!$isUniversal && empty($token))
+        @if($exigePresenca && empty($token))
           <div class="alert alert-warning">Confirme sua presença no momento para gerar o link pessoal desta avaliação.</div>
         @endif
 

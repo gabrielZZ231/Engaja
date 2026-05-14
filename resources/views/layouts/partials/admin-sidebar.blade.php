@@ -139,6 +139,16 @@
         </span>
         <span class="admin-nav-text">Avaliações universais</span>
       </a>
+      <a class="admin-nav-link {{ request()->routeIs('avaliacoes-transcricoes.*') ? 'active' : '' }}" href="{{ route('avaliacoes-transcricoes.index') }}">
+        <span class="admin-nav-icon" aria-hidden="true">
+          <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
+            <path d="M3 3a1 1 0 0 0-1 1v8a1 1 0 0 0 1 1h6v-1H3V4h6V1.5H3z"/>
+            <path d="M10.5 2a.5.5 0 0 1 .5.5V5h2.5a.5.5 0 0 1 0 1H11v2.5a.5.5 0 0 1-1 0V6H7.5a.5.5 0 0 1 0-1H10V2.5a.5.5 0 0 1 .5-.5"/>
+            <path d="M9 9h4v1H9zm0 2h4v1H9z"/>
+          </svg>
+        </span>
+        <span class="admin-nav-text">Transcrição de avaliação</span>
+      </a>
     </div>
   @endhasanyrole
 
