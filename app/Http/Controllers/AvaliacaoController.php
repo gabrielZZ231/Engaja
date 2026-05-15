@@ -1955,4 +1955,24 @@ class AvaliacaoController extends Controller
 
         return $pdf->download($fileName);
     }
+
+    public function downloadFichaPdf(Avaliacao $avaliacao)
+    {
+        $avaliacao->load([
+            'templateAvaliacao',
+            'atividade.evento',
+            'avaliacaoQuestoes.escala',
+            'avaliacaoQuestoes.indicador.dimensao',
+        ]);
+
+        $fileName = 'ficha-avaliacao-'.$avaliacao->id.'-'.now()->format('Ymd_His').'.pdf';
+
+        $pdf = Pdf::loadView('avaliacoes.ficha_pdf', [
+            'avaliacao' => $avaliacao,
+        ]);
+
+        $pdf->setPaper('a4', 'portrait');
+
+        return $pdf->download($fileName);
+    }
 }

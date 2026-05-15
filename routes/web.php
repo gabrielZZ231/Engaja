@@ -144,6 +144,7 @@ Route::middleware(['auth'])->group(function () {
             ->parameters(['avaliacoes' => 'avaliacao']);
         Route::get('avaliacoes/{avaliacao}/respostas', [AvaliacaoController::class, 'respostas'])->name('avaliacoes.respostas');
         Route::get('avaliacoes/{avaliacao}/respostas/{submissao}', [AvaliacaoController::class, 'respostasMostrar'])->name('avaliacoes.respostas.mostrar');
+        Route::get('avaliacoes/{avaliacao}/ficha-pdf', [AvaliacaoController::class, 'downloadFichaPdf'])->name('avaliacoes.ficha-pdf');
         Route::get('atividades/{atividade}/avaliacoes', [AvaliacaoController::class, 'resultadosAtividade'])->name('atividades.avaliacoes');
         Route::get('atividades/{atividade}/avaliacoes/pdf', [AvaliacaoController::class, 'downloadResultadosPdf'])->name('atividades.avaliacoes.pdf');
     });
