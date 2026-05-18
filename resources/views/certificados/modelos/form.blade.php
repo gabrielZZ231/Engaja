@@ -122,6 +122,7 @@
                 <option value="{{ $fam }}">{{ $fam }}</option>
               @endforeach
             </select>
+            <input type="color" name="layout_frente[text_color]" id="layout_frente_text_color" class="form-control form-control-color" style="height: 31px; padding: 0.25rem;" value="{{ old('layout_frente.text_color', !empty($modelo->layout_frente['text_color']) ? $modelo->layout_frente['text_color'] : '#111111') }}" title="Cor do texto da Frente">
             <input type="number" min="8" max="96" id="front_toolbar_size" class="form-control form-control-sm w-auto" value="22">
             <div class="btn-group btn-group-sm" role="group">
               <button type="button" class="btn btn-outline-secondary" data-front-style="bold" title="Negrito (seleção ou bloco)">B</button>
@@ -147,6 +148,7 @@
                 <option value="{{ $fam }}">{{ $fam }}</option>
               @endforeach
             </select>
+            <input type="color" name="layout_verso[text_color]" id="layout_verso_text_color" class="form-control form-control-color" style="height: 31px; padding: 0.25rem;" value="{{ old('layout_verso.text_color', !empty($modelo->layout_verso['text_color']) ? $modelo->layout_verso['text_color'] : '#111111') }}" title="Cor do texto do Verso">
             <input type="number" min="8" max="96" id="back_toolbar_size" class="form-control form-control-sm w-auto" value="22">
             <div class="btn-group btn-group-sm" role="group">
               <button type="button" class="btn btn-outline-secondary" data-back-style="bold" title="Negrito (seleção ou bloco)">B</button>
@@ -208,6 +210,7 @@
       qrXInputId, qrYInputId, qrSizeInputId,
       dateXInputId, dateYInputId, dateWInputId, dateHInputId,
       dateFontFamilyInputId, dateFontSizeInputId, dateFontWeightInputId, dateFontStyleInputId, dateAlignInputId,
+      textColorInputId,
       existingUrl, toolbar,
       qrEnabled = true,
       dateEnabled = false,
@@ -241,6 +244,7 @@
     const dateFontWeightInput = dateEnabled ? document.getElementById(dateFontWeightInputId) : null;
     const dateFontStyleInput = dateEnabled ? document.getElementById(dateFontStyleInputId) : null;
     const dateAlignInput = dateEnabled ? document.getElementById(dateAlignInputId) : null;
+    const textColorInput = document.getElementById(textColorInputId);
     if (!canvasEl || !fileInput || !textArea || !xInput || !yInput || !wInput || !hInput || !fontFamilyInput || !fontSizeInput || !fontWeightInput || !fontStyleInput || !alignInput || !stylesInput) return;
 
     const canvas = new fabric.Canvas(canvasId, { selection: false, backgroundColor: '#ffffff' });
@@ -322,7 +326,7 @@
         top: parseFloat(yInput.value) || 40,
         width: parseFloat(wInput.value) || 300,
         height: parseFloat(hInput.value) || undefined,
-        fill: '#111',
+        fill: textColorInput ? textColorInput.value : '#111111',
         fontSize: parseFloat(fontSizeInput.value) || 22,
         fontFamily: fontFamilyInput.value || 'Arial',
         fontWeight: fontWeightInput.value || 'normal',
@@ -416,7 +420,7 @@
         top: dy,
         width: parseFloat(dateWInput.value) || 320,
         height: parseFloat(dateHInput.value) || undefined,
-        fill: '#111',
+        fill: textColorInput ? textColorInput.value : '#111111',
         fontSize: parseFloat(fontSizeInput.value) || 22,
         fontFamily: fontFamilyInput.value || 'Arial',
         fontWeight: fontWeightInput.value || 'normal',
@@ -658,6 +662,14 @@
           });
         });
       }
+
+      if (textColorInput) {
+         textColorInput.addEventListener('input', () => {
+             if (textObj) textObj.set('fill', textColorInput.value);
+             if (dateObj) dateObj.set('fill', textColorInput.value);
+             canvas.renderAll();
+         });
+        }
     }
 
     const initialUrl = existingUrl || (fileInput.files && fileInput.files[0] ? URL.createObjectURL(fileInput.files[0]) : '');
@@ -668,6 +680,7 @@
     ensureFabric(() => {
       initFabricPreview({
         canvasId: 'canvas-frente',
+        textColorInputId:  'layout_frente_text_color',
         fileInputId: 'imagem_frente',
         textareaId: 'texto_frente',
         xInputId: 'layout_frente_x',
@@ -705,6 +718,7 @@
 
       initFabricPreview({
         canvasId: 'canvas-verso',
+        textColorInputId: 'layout_verso_text_color',
         fileInputId: 'imagem_verso',
         textareaId: 'texto_verso',
         xInputId: 'layout_verso_x',

@@ -208,6 +208,7 @@
       $fw = $layoutFrente['font_weight'] ?? 'normal';
       $fst = $layoutFrente['font_style'] ?? 'normal';
       $align = $layoutFrente['align'] ?? 'left';
+      $colorFrente = $layoutFrente['text_color'] ?? '#111111';
       $boxW = $w > 0 ? $w : $renderW;
       $boxH = $h > 0 ? $h : null;
       $styleFront = [
@@ -218,6 +219,7 @@
         "font-weight:{$fw}",
         "font-style:{$fst}",
         "text-align:{$align}",
+        "color:{$colorFrente}",
       ];
       if ($boxW) $styleFront[] = "width:{$boxW}px";
       if ($boxH) $styleFront[] = "height:{$boxH}px";
@@ -239,6 +241,7 @@
         "font-style:{$dateFst}",
         "text-align:{$dateAlign}",
         "width:{$dateW}px",
+        "color:{$colorFrente}",
       ];
       if ($dateH > 0) $styleDateFront[] = "height:{$dateH}px";
     @endphp
@@ -274,6 +277,7 @@
       $fw = $layoutVerso['font_weight'] ?? 'normal';
       $fst = $layoutVerso['font_style'] ?? 'normal';
       $align = $layoutVerso['align'] ?? 'left';
+      $colorVerso = $layoutVerso['text_color'] ?? '#111111';
       $boxW = $w > 0 ? $w : $renderW;
       $boxH = $h > 0 ? $h : null;
       $styleBack = [
@@ -284,6 +288,7 @@
         "font-weight:{$fw}",
         "font-style:{$fst}",
         "text-align:{$align}",
+        "color:{$colorVerso}",
       ];
       if ($boxW) $styleBack[] = "width:{$boxW}px";
       if ($boxH) $styleBack[] = "height:{$boxH}px";

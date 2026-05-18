@@ -72,6 +72,8 @@ class ModeloCertificadoRequest extends FormRequest
             'layout_verso.qr_y'        => ['nullable','numeric'],
             'layout_verso.qr_size'     => ['nullable','numeric'],
             'layout_verso.qr_color'    => ['nullable','string','max:20'],
+            'layout_frente.text_color' => ['nullable', 'string', 'max:7'],
+            'layout_verso.text_color'  => ['nullable', 'string', 'max:7'],
         ];
     }
 
