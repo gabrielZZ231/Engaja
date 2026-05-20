@@ -27,6 +27,7 @@ use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuestaoController;
 use App\Http\Controllers\RegiaoController;
 use App\Http\Controllers\TemplateAvaliacaoController;
+use App\Http\Controllers\RelatorioQuantitativoController;
 use App\Http\Controllers\UserManagementController;
 use Illuminate\Support\Facades\Route;
 
@@ -260,6 +261,13 @@ Route::middleware(['auth', 'role:administrador|gerente|eq_pedagogica|articulador
 
     Route::get('/atividades/{atividade}/relatorios-avaliacao/pdf-consolidado', [AvaliacaoAtividadeController::class, 'baixarTodosPorAtividade'])
         ->name('avaliacao-atividade.download-all');
+});
+
+Route::middleware(['auth', 'role:administrador|gerente|eq_pedagogica|articulador'])->group(function () {
+    Route::get('/relatorio-quantitativo', [RelatorioQuantitativoController::class, 'index'])
+        ->name('relatorio-quantitativo.index');
+    Route::get('/relatorio-quantitativo/momentos', [RelatorioQuantitativoController::class, 'momentos'])
+        ->name('relatorio-quantitativo.momentos');
 });
 
 Route::middleware(['auth', 'role:administrador|gerente|eq_pedagogica|articulador'])->group(function () {
