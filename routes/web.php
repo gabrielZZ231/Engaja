@@ -270,6 +270,10 @@ Route::middleware(['auth', 'role:administrador|gerente|eq_pedagogica|articulador
         ->name('relatorio-quantitativo.index');
     Route::get('/relatorio-quantitativo/momentos', [RelatorioQuantitativoController::class, 'momentos'])
         ->name('relatorio-quantitativo.momentos');
+    Route::get('/relatorio-quantitativo/exportar-momento', [RelatorioQuantitativoController::class, 'exportarMomento'])
+        ->name('relatorio-quantitativo.exportar-momento');
+    Route::get('/relatorio-quantitativo/exportar-total-geral', [RelatorioQuantitativoController::class, 'exportarTotalGeral'])
+        ->name('relatorio-quantitativo.exportar-total-geral');
 });
 
 Route::middleware(['auth', 'role:administrador|gerente|eq_pedagogica|articulador'])->group(function () {
