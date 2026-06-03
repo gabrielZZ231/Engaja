@@ -1,3 +1,7 @@
+<style>
+    @import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;1,400&family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&family=Open+Sans:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Roboto:ital,wght@0,400;0,700;1,400&display=swap');
+</style>
+
 <div class="card shadow-sm mb-4">
   <div class="card-body">
     <div class="row g-3">
@@ -49,6 +53,17 @@
           @endif
         </div>
         @error('imagem_verso') <div class="invalid-feedback">{{ $message }}</div> @enderror
+      </div>
+
+      <div class="col-12">
+          <div class="alert alert-light border mb-0">
+              <div class="fw-semibold mb-1">Tags disponíveis para utilização</div>
+              <div class="d-flex flex-wrap gap-2">
+                  @foreach(['%participante%', '%cpf%', '%acao%', '%carga_horaria%'] as $tag)
+                      <code class="px-2 py-1 bg-white border rounded">{{ $tag }}</code>
+                  @endforeach
+              </div>
+          </div>
       </div>
 
       <div class="col-12">
@@ -118,7 +133,7 @@
         <div class="border rounded p-2 position-relative d-flex justify-content-center" style="min-height: 420px; background:#fff;">
           <div class="position-absolute top-0 start-0 end-0 d-flex align-items-center gap-2 p-2" style="z-index:2; pointer-events: auto;">
             <select id="front_toolbar_font" class="form-select form-select-sm w-auto">
-              @foreach(['Arial','Georgia','Times New Roman','Courier New','Verdana','Tahoma'] as $fam)
+                @foreach(['Arial','Georgia','Times New Roman','Courier New','Verdana','Tahoma', 'Montserrat', 'Roboto', 'Open Sans', 'Lato', 'Playfair Display'] as $fam)
                 <option value="{{ $fam }}">{{ $fam }}</option>
               @endforeach
             </select>
@@ -144,7 +159,7 @@
         <div class="border rounded p-2 position-relative d-flex justify-content-center" style="min-height: 420px; background:#fff;">
           <div class="position-absolute top-0 start-0 end-0 d-flex align-items-center gap-2 p-2" style="z-index:2; pointer-events: auto;">
             <select id="back_toolbar_font" class="form-select form-select-sm w-auto">
-              @foreach(['Arial','Georgia','Times New Roman','Courier New','Verdana','Tahoma'] as $fam)
+                @foreach(['Arial','Georgia','Times New Roman','Courier New','Verdana','Tahoma', 'Montserrat', 'Roboto', 'Open Sans', 'Lato', 'Playfair Display'] as $fam)
                 <option value="{{ $fam }}">{{ $fam }}</option>
               @endforeach
             </select>
