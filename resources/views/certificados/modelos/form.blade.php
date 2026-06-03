@@ -73,6 +73,13 @@
       </div>
 
       <div class="col-12">
+          <label class="form-label" for="date_text">Texto da Data / Local</label>
+          <input type="text" id="date_text" name="layout_frente[date_text]" class="form-control"
+                 value="{{ old('layout_frente.date_text', $modelo->layout_frente['date_text'] ?? 'São Paulo, ' . now()->locale('pt_BR')->translatedFormat('j \d\e F \d\e Y') . '.') }}">
+          <div class="form-text">Você pode personalizar a cidade e a data exata. Ela aparecerá no final do certificado da mesma forma que você escreveu no campo acima.</div>
+      </div>
+
+      <div class="col-12">
         <label class="form-label" for="texto_verso">Texto do verso</label>
         <textarea id="texto_verso" name="texto_verso" rows="4" class="form-control @error('texto_verso') is-invalid @enderror">{{ old('texto_verso', $modelo->texto_verso ?? '') }}</textarea>
         @error('texto_verso') <div class="invalid-feedback">{{ $message }}</div> @enderror
@@ -224,7 +231,7 @@
       fontFamilyInputId, fontSizeInputId, fontWeightInputId, fontStyleInputId, alignInputId, stylesInputId,
       qrXInputId, qrYInputId, qrSizeInputId,
       dateXInputId, dateYInputId, dateWInputId, dateHInputId,
-      dateFontFamilyInputId, dateFontSizeInputId, dateFontWeightInputId, dateFontStyleInputId, dateAlignInputId,
+      dateFontFamilyInputId, dateFontSizeInputId, dateFontWeightInputId, dateFontStyleInputId, dateAlignInputId, dateTextInputId,
       textColorInputId,
       existingUrl, toolbar,
       qrEnabled = true,
@@ -259,6 +266,7 @@
     const dateFontWeightInput = dateEnabled ? document.getElementById(dateFontWeightInputId) : null;
     const dateFontStyleInput = dateEnabled ? document.getElementById(dateFontStyleInputId) : null;
     const dateAlignInput = dateEnabled ? document.getElementById(dateAlignInputId) : null;
+    const dateTextInput = dateEnabled ? document.getElementById(dateTextInputId) : null;
     const textColorInput = document.getElementById(textColorInputId);
     if (!canvasEl || !fileInput || !textArea || !xInput || !yInput || !wInput || !hInput || !fontFamilyInput || !fontSizeInput || !fontWeightInput || !fontStyleInput || !alignInput || !stylesInput) return;
 
@@ -430,6 +438,8 @@
       if (!dateEnabled || dateObj || !dateXInput || !dateYInput || !dateWInput || !dateHInput) return;
       const dx = parseFloat(dateXInput.value || '0') || canvas.getWidth() * 0.56;
       const dy = parseFloat(dateYInput.value || '0') || canvas.getHeight() * 0.74;
+
+      const defaultDateText = dateTextInput ? dateTextInput.value : 'São Paulo, 21 de fevereiro de 2026.';
       dateObj = new fabric.Textbox('S\u00e3o Paulo, 21 de fevereiro de 2026.', {
         left: dx,
         top: dy,
@@ -441,9 +451,15 @@
         fontWeight: fontWeightInput.value || 'normal',
         fontStyle: fontStyleInput.value || 'normal',
         textAlign: dateAlignInput?.value || 'left',
-        editable: false,
+        editable: true,
         lockScalingFlip: true,
       });
+
+      dateObj.on('changed', () => {
+          if (dateTextInput) dateTextInput.value = dateObj.text;
+          updateHidden();
+      });
+
       const lockDateScale = () => {
         const newW = (dateObj.width || 0) * (dateObj.scaleX || 1);
         const newH = (dateObj.height || 0) * (dateObj.scaleY || 1);
@@ -544,6 +560,15 @@
         canvas.renderAll();
       }
     });
+
+    if (dateTextInput) {
+        dateTextInput.addEventListener('input', () => {
+            if (dateObj) {
+                dateObj.text = dateTextInput.value || '';
+                canvas.renderAll();
+            }
+        });
+    }
 
     fileInput.addEventListener('change', e => {
       const file = e.target.files && e.target.files[0];
@@ -719,6 +744,7 @@
         dateFontWeightInputId: 'layout_frente_date_font_weight',
         dateFontStyleInputId: 'layout_frente_date_font_style',
         dateAlignInputId: 'layout_frente_date_align',
+        dateTextInputId: 'date_text',
         toolbar: {
           fontFamilySelect: document.getElementById('front_toolbar_font'),
           fontSizeField: document.getElementById('front_toolbar_size'),

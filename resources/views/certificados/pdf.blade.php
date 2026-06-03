@@ -46,8 +46,8 @@
     $layoutVerso  = $modelo->layout_verso ?? [];
     $textoFrente = trim($certificado->texto_frente ?? '');
     $textoVerso  = trim($certificado->texto_verso ?? '');
-    $dataEmissao = ($certificado->created_at ?? now())->locale('pt_BR')->translatedFormat('j \d\e F \d\e Y');
-    $textoDataEmissao = "São Paulo, {$dataEmissao}.";
+    $dataEmissaoPadrao = ($certificado->created_at ?? now())->locale('pt_BR')->translatedFormat('j \d\e F \d\e Y');
+    $textoDataEmissao = $layoutFrente['date_text'] ?? "São Paulo, {$dataEmissaoPadrao}.";
     $qrLink = $certificado->codigo_validacao ? route('certificados.validacao', $certificado->codigo_validacao) : null;
     $qrBase64 = null;
     $qrColorHex = $layoutVerso['qr_color'] ?? '#811283';
