@@ -2,11 +2,14 @@
 
 namespace App\Http\Controllers;
 
+use App\Mail\AgendamentoCriadoMail;
 use App\Models\Agendamento;
 use App\Models\AtividadeAcao;
 use App\Models\Municipio;
 use App\Models\User;
 use Illuminate\Http\Request;
+use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\Mail;
 use Illuminate\Validation\ValidationException;
 
 class AgendamentoController extends Controller
@@ -45,7 +48,12 @@ class AgendamentoController extends Controller
         $dados = $this->aplicarMunicipio($dados, $user, $permiteEscolherMunicipio);
         $dados['user_id'] = auth()->id();
 
-        Agendamento::create($dados);
+        $agendamento = Agendamento::create($dados);
+        $agendamento->load('atividadeAcao', 'municipio');
+
+        User::role(['administrador', 'gerente', 'eq_pedagogica'])
+            ->whereNotNull('email')
+            ->each(fn (User $user) => Mail::to($user->email)->queue(new AgendamentoCriadoMail($agendamento)));
 
         return redirect()
             ->route('agendamentos.index')
@@ -125,8 +133,9 @@ class AgendamentoController extends Controller
 
         $atividadeAcao = AtividadeAcao::query()->findOrFail($dados['atividade_acao_id']);
 
-        if (!$atividadeAcao->usa_turmas) {
+        if (! $atividadeAcao->usa_turmas) {
             $dados['turma'] = null;
+
             return $dados;
         }
 
@@ -139,7 +148,7 @@ class AgendamentoController extends Controller
             ]);
         }
 
-        if (!in_array($turmaSelecionada, $turmasDisponiveis, true)) {
+        if (! in_array($turmaSelecionada, $turmasDisponiveis, true)) {
             throw ValidationException::withMessages([
                 'turma' => 'A turma selecionada não é válida para a atividade/ação escolhida.',
             ]);
@@ -152,7 +161,7 @@ class AgendamentoController extends Controller
 
     private function municipioDoUsuario(?User $user): ?Municipio
     {
-        if (!$user) {
+        if (! $user) {
             return null;
         }
 
@@ -164,12 +173,12 @@ class AgendamentoController extends Controller
 
     private function usuarioPodeEscolherMunicipio(?User $user): bool
     {
-        return $user && !$user->hasRole('SME');
+        return $user && ! $user->hasRole('SME');
     }
 
-    private function municipiosParaSelecao(bool $incluir): \Illuminate\Support\Collection
+    private function municipiosParaSelecao(bool $incluir): Collection
     {
-        if (!$incluir) {
+        if (! $incluir) {
             return collect();
         }
 
@@ -191,7 +200,7 @@ class AgendamentoController extends Controller
     private function aplicarMunicipio(array $dados, ?User $user, bool $permitirEscolha): array
     {
         $municipioId = $this->resolverMunicipioId($dados, $user, $permitirEscolha);
-        if (!$municipioId) {
+        if (! $municipioId) {
             throw ValidationException::withMessages([
                 'municipio_id' => 'Seu participante não possui município preenchido. Atualize seu perfil para cadastrar agendamentos.',
             ]);
@@ -204,7 +213,7 @@ class AgendamentoController extends Controller
 
     private function garantirNaoEfetivado(Agendamento $agendamento): void
     {
-        if (!$agendamento->efetivado) {
+        if (! $agendamento->efetivado) {
             return;
         }
 
