@@ -29,9 +29,6 @@
       font-size: 20px;
       line-height: 1.4;
       white-space: normal;
-      text-align: justify;
-      text-align-last: left;
-      text-justify: inter-word;
       margin: 0;
       padding: 0;
     }
@@ -226,6 +223,13 @@
         "text-align:{$align}",
         "color:{$colorFrente}",
       ];
+      if ($align === 'justify') {
+          $styleFront[] = "text-align-last:left";
+          $styleFront[] = "text-justify:inter-word";
+      } else {
+          $styleFront[] = "text-align-last:{$align}";
+      }
+
       if ($boxW) $styleFront[] = "width:{$boxW}px";
       if ($boxH) $styleFront[] = "height:{$boxH}px";
       $dateX = $offsetX + ($layoutFrente['date_x'] ?? 0) * $scaleX;
@@ -248,6 +252,12 @@
         "width:{$dateW}px",
         "color:{$colorFrente}",
       ];
+      if ($dateAlign === 'justify') {
+          $styleDateFront[] = "text-align-last:left";
+          $styleDateFront[] = "text-justify:inter-word";
+      } else {
+          $styleDateFront[] = "text-align-last:{$dateAlign}";
+      }
       if ($dateH > 0) $styleDateFront[] = "height:{$dateH}px";
     @endphp
     <img src="{{ $frenteUrl }}" class="bg" alt="Frente" style="width:{{ $renderW }}px; height:{{ $renderH }}px; left:{{ $offsetX }}px; top:{{ $offsetY }}px;">
@@ -295,6 +305,13 @@
         "text-align:{$align}",
         "color:{$colorVerso}",
       ];
+      if ($align === 'justify') {
+          $styleBack[] = "text-align-last:left";
+          $styleBack[] = "text-justify:inter-word";
+      } else {
+          $styleBack[] = "text-align-last:{$align}";
+      }
+
       if ($boxW) $styleBack[] = "width:{$boxW}px";
       if ($boxH) $styleBack[] = "height:{$boxH}px";
       $qrX = $offsetX + (($layoutVerso['qr_x'] ?? null) !== null ? $layoutVerso['qr_x'] * $scaleX : 0);
