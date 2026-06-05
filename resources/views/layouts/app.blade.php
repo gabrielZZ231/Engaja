@@ -204,6 +204,61 @@
       line-height: 1.2;
     }
 
+    .admin-sidebar__accordion .accordion-item {
+      background: transparent;
+      border: 0;
+    }
+
+    .admin-sidebar__accordion .accordion-item + .accordion-item {
+      margin-top: .35rem;
+    }
+
+    .admin-sidebar__accordion .accordion-button {
+      background: transparent;
+      color: #f5f3ff;
+      padding: .6rem .75rem;
+      border-radius: .9rem;
+      gap: .75rem;
+      box-shadow: none;
+      font-weight: 700;
+    }
+
+    .admin-sidebar__accordion .accordion-button::after {
+      filter: brightness(0) invert(1);
+    }
+
+    .admin-sidebar__accordion .accordion-button:not(.collapsed) {
+      background: rgba(255, 255, 255, 0.12);
+      color: #fff;
+    }
+
+    .admin-sidebar__accordion .accordion-button:focus {
+      box-shadow: 0 0 0 .15rem rgba(255, 255, 255, 0.15);
+    }
+
+    .admin-sidebar__accordion .accordion-body {
+      padding: .35rem 0 .6rem;
+      display: grid;
+      gap: .25rem;
+    }
+
+    .admin-sidebar__accordion .admin-nav-link {
+      padding-left: 2.7rem;
+    }
+
+    .admin-sidebar__accordion .admin-subsection__label {
+      text-transform: uppercase;
+      letter-spacing: .4px;
+      color: rgba(255, 255, 255, 0.6);
+      font-size: .7rem;
+      padding: .35rem .75rem .15rem;
+      font-weight: 700;
+    }
+
+    .admin-sidebar__account {
+      margin-top: auto;
+    }
+
     .admin-topbar {
       background: #ffffff;
       border-bottom: 1px solid #e7e8ed;
@@ -217,6 +272,12 @@
       z-index: 1010;
       box-sizing: border-box;
       width: 100%;
+    }
+
+    .admin-topbar__actions {
+      display: flex;
+      align-items: center;
+      gap: .75rem;
     }
 
     .admin-topbar__title {
@@ -349,6 +410,14 @@
       box-shadow: none;
     }
 
+    .admin-shell.is-collapsed .admin-sidebar__accordion .accordion-button::after {
+      display: none;
+    }
+
+    .admin-shell.is-collapsed .admin-sidebar__accordion .accordion-collapse {
+      display: none;
+    }
+
     @media (max-width: 991.98px) {
       .admin-sidebar {
         position: fixed;
@@ -404,18 +473,41 @@
                 <path fill-rule="evenodd" d="M1.5 3.75A.75.75 0 0 1 2.25 3h11.5a.75.75 0 0 1 0 1.5H2.25a.75.75 0 0 1-.75-.75m0 4A.75.75 0 0 1 2.25 7h11.5a.75.75 0 0 1 0 1.5H2.25a.75.75 0 0 1-.75-.75m0 4A.75.75 0 0 1 2.25 11h11.5a.75.75 0 0 1 0 1.5H2.25a.75.75 0 0 1-.75-.75" />
               </svg>
             </button>
-            <button class="btn btn-outline-secondary d-none d-lg-inline-flex" type="button" id="sidebarCollapseToggle" aria-label="Recolher menu lateral">
-              <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" fill="currentColor" viewBox="0 0 16 16">
-                <path fill-rule="evenodd" d="M12.5 2a.5.5 0 0 0-.5.5v11a.5.5 0 0 0 1 0v-11a.5.5 0 0 0-.5-.5M6.646 4.146a.5.5 0 0 1 .708.708L4.707 7.5H7.5a.5.5 0 0 1 0 1H4.707l2.647 2.646a.5.5 0 0 1-.708.708l-3.5-3.5a.5.5 0 0 1 0-.708z"/>
-              </svg>
-            </button>
             <div>
               <div class="text-uppercase text-muted small fw-semibold mb-0">Área interna</div>
               <p class="admin-topbar__title fw-bold mb-0">Painel Engaja</p>
             </div>
           </div>
-          <div class="d-flex align-items-center gap-3">
-            <span class="text-muted small d-none d-md-inline">Olá, {{ Auth::user()->name }}</span>
+            <div class="admin-topbar__actions">
+            @php($hasQuickActions = false)
+            <div class="dropdown">
+              <button class="btn btn-engaja dropdown-toggle" type="button" id="quickActionsDropdown" data-bs-toggle="dropdown" aria-expanded="false">
+                  Ações rápidas
+              </button>
+              <ul class="dropdown-menu dropdown-menu-end shadow-sm" aria-labelledby="quickActionsDropdown">
+                @hasanyrole('administrador|gerente|eq_pedagogica')
+                  @php($hasQuickActions = true)
+                    <li><a class="dropdown-item" href="{{ route('eventos.create') }}">Nova ação pedagógica</a></li>
+                @endhasanyrole
+                @hasanyrole('administrador|gerente|eq_pedagogica|articulador|SME')
+                  @php($hasQuickActions = true)
+                  <li><a class="dropdown-item" href="{{ route('agendamentos.create') }}">Novo agendamento</a></li>
+                @endhasanyrole
+                @hasanyrole('administrador|gerente|eq_pedagogica|articulador')
+                  @php($hasQuickActions = true)
+                    <li><a class="dropdown-item" href="{{ route('avaliacoes.create') }}">Nova avaliação</a></li>
+                    <li><a class="dropdown-item" href="{{ route('usuarios.create') }}">Cadastrar usuário</a></li>
+                @endhasanyrole
+                @hasanyrole('administrador|gerente')
+                  @php($hasQuickActions = true)
+                  <li><a class="dropdown-item" href="{{ route('certificados.modelos.create') }}">Novo modelo de certificado</a></li>
+                @endhasanyrole
+                @unless($hasQuickActions)
+                    <li><span class="dropdown-item-text text-muted">Nenhuma ação disponível</span></li>
+                @endunless
+              </ul>
+            </div>
+            <span class="text-muted small d-none d-md-inline">Ola, {{ Auth::user()->name }}</span>
             <div class="dropdown">
               <button class="btn btn-light border dropdown-toggle d-flex align-items-center gap-2" type="button" data-bs-toggle="dropdown" aria-expanded="false">
                 @if (Auth::user()->profile_photo_url)
