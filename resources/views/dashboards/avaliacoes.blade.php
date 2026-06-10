@@ -34,9 +34,9 @@
       </div>
       <div class="row g-3 align-items-end">
         <div class="col-lg-3 col-md-6 filter-momento">
-          <label class="form-label text-muted small mb-1">Ação Pedagógica</label>
+         <label class="form-label text-muted small mb-1">Ação Pedagógica (Obrigatório)</label>
           <select class="form-select js-filter" id="f-evento">
-            <option value="">Todos</option>
+            <option value="">-- Selecione uma ação --</option>
             @foreach($eventos as $evento)
             <option value="{{ $evento->id }}">{{ $evento->nome }}</option>
             @endforeach
@@ -45,7 +45,7 @@
         <div class="col-lg-3 col-md-6 filter-universal d-none">
           <label class="form-label text-muted small mb-1">Avaliação universal</label>
           <select class="form-select js-filter" id="f-avaliacao-universal">
-            <option value="">Todas</option>
+            <option value="">-- Selecione uma avaliação --</option>
             @foreach($avaliacoesUniversais as $avaliacaoUniversal)
             <option value="{{ $avaliacaoUniversal->id }}">
               {{ $avaliacaoUniversal->descricao_universal ?: ($avaliacaoUniversal->templateAvaliacao->nome ?? 'Avaliação universal') }}
@@ -56,7 +56,7 @@
         <div class="col-lg-3 col-md-6 filter-momento">
           <label class="form-label text-muted small mb-1">Momento</label>
           <select class="form-select js-filter" id="f-atividade">
-            <option value="">Selecione uma ação pedagógica</option>
+            <option value="">Primeiro selecione a ação pedagógica</option>
             @foreach($atividades as $atividade)
             @php
               $diaFormatado = $atividade->dia ? \Illuminate\Support\Carbon::parse($atividade->dia)->format('d/m') : '';
@@ -88,7 +88,7 @@
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body">
           <p class="text-uppercase small text-muted mb-1">Submissões</p>
-          <div class="h3 fw-bold mb-0" data-total="submissoes">0</div>
+          <div class="h3 fw-bold mb-0" data-total="submissoes">-</div>
           <small class="text-muted">Respostas completas registradas</small>
         </div>
       </div>
@@ -97,7 +97,7 @@
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body">
           <p class="text-uppercase small text-muted mb-1">Questões</p>
-          <div class="h3 fw-bold mb-0" data-total="questoes">0</div>
+          <div class="h3 fw-bold mb-0" data-total="questoes">-</div>
           <small class="text-muted">Com alguma resposta</small>
         </div>
       </div>
@@ -106,7 +106,7 @@
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body">
           <p class="text-uppercase small text-muted mb-1" data-total-label="eventos">Ações Pedagógicas</p>
-          <div class="h3 fw-bold mb-0" data-total="eventos">0</div>
+          <div class="h3 fw-bold mb-0" data-total="eventos">-</div>
           <small class="text-muted" data-total-help="eventos">Com respostas vinculadas</small>
         </div>
       </div>
@@ -273,6 +273,32 @@
     return params.toString();
   }
 
+    //valida se os filtros obrigatórios foram preenchidos
+    function hasRequiredFilters() {
+        const tipo = currentTipo();
+        if (tipo === 'universal') {
+            return !!filters.avaliacaoUniversal?.value;
+        } else {
+            return !!filters.evento?.value;
+        }
+    }
+
+    //mostra o estado vazio e zera os placares
+    function showEmptyState() {
+        renderTotals({ submissoes: '-', questoes: '-', eventos: '-', ultima: '-' });
+        cardsQuestoes.innerHTML = `
+      <div class="col-12">
+        <div class="card border-0 shadow-sm text-center py-5">
+          <div class="card-body">
+            <h5 class="fw-bold text-muted mb-2">Aguardando filtros</h5>
+            <p class="text-muted mb-0">Selecione uma <strong>Ação Pedagógica</strong> ou <strong>Avaliação Universal</strong> acima para carregar as respostas e gráficos.</p>
+          </div>
+        </div>
+      </div>`;
+        paginacaoNav.style.display = 'none';
+        badgePagina.style.setProperty('display', 'none', 'important');
+    }
+
   function updateModeUi() {
     const tipo = currentTipo();
     const universal = tipo === 'universal';
@@ -308,7 +334,7 @@
     filters.atividade.disabled = !hasEvento;
 
     if (atividadePlaceholder) {
-      atividadePlaceholder.textContent = hasEvento ? 'Todas' : 'Selecione uma ação pedagógica';
+      atividadePlaceholder.textContent = hasEvento ? 'Todas as atividades' : 'Primeiro selecione a ação pedagógica';
     }
 
     let selectedOptionVisible = !filters.atividade.value;
@@ -385,9 +411,9 @@
   }
 
   function renderTotals(totais) {
-    totalsEls.submissoes.textContent = new Intl.NumberFormat('pt-BR').format(totais.submissoes || 0);
-    totalsEls.questoes.textContent = new Intl.NumberFormat('pt-BR').format(totais.questoes || 0);
-    totalsEls.eventos.textContent = new Intl.NumberFormat('pt-BR').format(totais.eventos || 0);
+    totalsEls.submissoes.textContent = totais.submissoes === '-' ? '-' : new Intl.NumberFormat('pt-BR').format(totais.submissoes || 0);
+    totalsEls.questoes.textContent = totais.questoes === '-' ? '-' : new Intl.NumberFormat('pt-BR').format(totais.questoes || 0);
+    totalsEls.eventos.textContent = totais.eventos === '-' ? '-' : new Intl.NumberFormat('pt-BR').format(totais.eventos || 0);
     totalsEls.ultima.textContent = totais.ultima || '-';
   }
 
@@ -409,7 +435,7 @@
       cardsQuestoes.innerHTML = `
         <div class="col-12">
           <div class="card border-0 shadow-sm">
-            <div class="card-body text-muted text-center">Sem respostas para os filtros aplicados.</div>
+            <div class="card-body text-muted text-center">Nenhum dado encontrado para os filtros selecionados.</div>
           </div>
         </div>`;
       return;
@@ -651,6 +677,11 @@
   }
 
   async function loadData(page = 1) {
+    if (!hasRequiredFilters()) {
+       showEmptyState();
+       return;
+    }
+
     currentPage = page;
     setLoading(true);
     try {
@@ -666,7 +697,7 @@
         cardsQuestoes.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }
     } catch (error) {
-      cardsQuestoes.innerHTML = '<div class=\"card border-0 shadow-sm\"><div class=\"card-body text-danger\">Erro ao carregar dados.</div></div>';
+      cardsQuestoes.innerHTML = '<div class=\"card border-0 shadow-sm\"><div class=\"card-body text-danger\">Erro ao carregar dados. Verifique sua conexão.</div></div>';
       paginacaoNav.style.display = 'none';
     }
   }
@@ -686,7 +717,9 @@
     updateAtividadeFilter();
     loadData(1);
   });
-  loadData(1);
+  //define a interface e chama o estado vazio
+  updateModeUi();
+  showEmptyState();
 })();
 </script>
 @endsection

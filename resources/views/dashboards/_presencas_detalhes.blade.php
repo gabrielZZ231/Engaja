@@ -16,7 +16,7 @@
                         <th style="width: 35%;">Nome</th>
                         <th style="width: 25%;">E-mail</th>
                         <th style="width: 15%;">CPF</th>
-                        <th style="width: 13%;">Tag</th>
+                        <th style="width: 13%;">Vínculo</th>
                         <th style="width: 12%;">Status</th>
                     </tr>
                 </thead>
@@ -54,7 +54,7 @@
                         <th style="width: 35%;">Nome</th>
                         <th style="width: 30%;">E-mail</th>
                         <th style="width: 18%;">CPF</th>
-                        <th style="width: 17%;">Tag</th>
+                        <th style="width: 17%;">Vínculo</th>
                     </tr>
                 </thead>
                 <tbody>
