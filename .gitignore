@@ -22,3 +22,8 @@
 Homestead.json
 Homestead.yaml
 Thumbs.db
+
+# graphify - somente artefatos locais
+/graphify-out/cost.json
+/graphify-out/cache/
+/graphify-out/*.html
