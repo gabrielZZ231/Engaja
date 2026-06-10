@@ -23,5 +23,7 @@ Homestead.json
 Homestead.yaml
 Thumbs.db
 
-# graphify knowledge graph (rebuildable artifacts)
-/graphify-out
+# graphify - somente artefatos locais
+/graphify-out/cost.json
+/graphify-out/cache/
+/graphify-out/*.html
