@@ -11,6 +11,7 @@ use App\Models\RespostaAvaliacao;
 use App\Models\SubmissaoAvaliacao;
 use App\Models\TemplateAvaliacao;
 use App\Services\AvaliacaoRespostasDashboardService;
+use Illuminate\Contracts\View\View;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
 use Spatie\LaravelPdf\Facades\Pdf;
@@ -64,7 +65,6 @@ class DashboardController extends Controller
             'inscritos' => 'inscritos_count',
             'presentes' => 'presentes_count',
             'ausentes' => 'ausentes_count',
-            'total' => 'presencas_total',
         ];
         $orderByCol = $sortable[$sort] ?? 'atividades.dia';
 
@@ -84,18 +84,7 @@ class DashboardController extends Controller
                 'evento:id,nome',
                 'municipio.estado:id,nome,sigla',
             ])
-            ->with([
-                'presencas' => fn ($q) => $q
-                    ->where('status', 'presente')
-                    ->with('inscricao.participante.user'),
-            ])
-            ->with([
-                'inscricoes' => fn ($q) => $q
-                    ->whereNull('deleted_at')
-                    ->with('participante.user'),
-            ])
             ->withCount([
-                'presencas as presencas_total',
                 'presencas as presentes_count' => fn ($q) => $q->where('status', 'presente'),
             ])
             ->selectRaw('(
@@ -118,7 +107,8 @@ class DashboardController extends Controller
             ) as ausentes_count');
 
         $query->whereNull('atividades.deleted_at')
-            ->whereHas('evento');
+            ->whereNotNull('atividades.evento_id')
+            ->whereNull('eventos.deleted_at');
 
         $query->when($eventoId, fn ($q) => $q->where('atividades.evento_id', $eventoId));
         $query->when($de && $ate, fn ($q) => $q->whereBetween('atividades.dia', [$de, $ate]));
@@ -136,17 +126,6 @@ class DashboardController extends Controller
         $query->orderBy($orderByCol, $dir)->orderBy('atividades.id', 'desc');
 
         $atividades = $query->paginate($perPage)->appends($request->query());
-        $atividades->getCollection()->transform(function ($atividade) {
-            $inscricoes = collect($atividade->inscricoes ?? []);
-            $presentes = collect($atividade->presencas ?? []);
-            $presentesIds = $presentes->pluck('inscricao_id')->filter()->unique();
-
-            $atividade->inscritos_count = $inscricoes->count();
-            $atividade->presentes_count = $presentesIds->count();
-            $atividade->ausentes_count = max($atividade->inscritos_count - $atividade->presentes_count, 0);
-
-            return $atividade;
-        });
 
         $eventos = Evento::query()->orderBy('nome')->pluck('nome', 'id');
         $municipioIds = Atividade::query()
@@ -167,6 +146,34 @@ class DashboardController extends Controller
             ->pluck('descricao');
 
         return view('dashboard', compact('atividades', 'eventos', 'municipios', 'momentos'));
+    }
+
+    public function presencasDetalhes(Atividade $atividade): View
+    {
+        if ($atividade->evento) {
+            $this->authorize('update', $atividade->evento);
+        }
+
+        $presentes = $atividade->presencas()
+            ->where('status', 'presente')
+            ->with('inscricao.participante.user')
+            ->get();
+
+        $inscricoes = $atividade->inscricoes()
+            ->whereNull('deleted_at')
+            ->with('participante.user')
+            ->get();
+
+        $presentesIds = $presentes->pluck('inscricao_id')->filter()->unique();
+        $ausentes = $inscricoes->filter(fn ($i) => ! $presentesIds->contains($i->id))->values();
+        $inscritosCount = $inscricoes->count();
+        $presentesCount = $presentesIds->count();
+        $ausentesCount = $ausentes->count();
+
+        return view('dashboards._presencas_detalhes', compact(
+            'presentes', 'ausentes', 'atividade',
+            'inscritosCount', 'presentesCount', 'ausentesCount'
+        ));
     }
 
     public function avaliacoes(Request $request)
@@ -225,6 +232,15 @@ class DashboardController extends Controller
 
     public function export(Request $request)
     {
+        /*
+         * Relatórios extensos hidratam muitos models com eager loading profundo
+         * (presencas.inscricao.participante.user e inscricoes.participante.user).
+         * Eleva o limite de memória da requisição e impõe um teto de atividades
+         * para evitar estouro de memória e timeout do Browsershot/Chromium.
+         */
+        ini_set('memory_limit', config('dashboard.pdf.memory_limit'));
+        $maxAtividades = (int) config('dashboard.pdf.max_atividades');
+
         $pdfEventoId = $request->integer('pdf_evento_id');
         $eventoId = $pdfEventoId ?? $request->integer('evento_id');
         $municipioId = $request->integer('pdf_municipio_id');
@@ -245,12 +261,11 @@ class DashboardController extends Controller
             'inscritos' => 'inscritos_count',
             'presentes' => 'presentes_count',
             'ausentes' => 'ausentes_count',
-            'total' => 'presencas_total',
         ];
         $orderByCol = $sortable[$sort] ?? 'atividades.dia';
 
         // mesma query do index, mas sem paginate() e com eager até user
-        $atividades = Atividade::query()
+        $atividadesQuery = Atividade::query()
             ->select([
                 'atividades.id',
                 'atividades.evento_id',
@@ -277,7 +292,6 @@ class DashboardController extends Controller
                     ->with('participante.user'),
             ])
             ->withCount([
-                'presencas as presencas_total',
                 'presencas as presentes_count' => fn ($q) => $q->where('status', 'presente'),
             ])
             ->selectRaw('(
@@ -299,7 +313,8 @@ class DashboardController extends Controller
                   AND presencas.deleted_at IS NULL
             ) as ausentes_count')
             ->whereNull('atividades.deleted_at')
-            ->whereHas('evento')
+            ->whereNotNull('atividades.evento_id')
+            ->whereNull('eventos.deleted_at')
             ->when($eventoId, fn ($q) => $q->where('atividades.evento_id', $eventoId))
             ->when($municipioId, fn ($q) => $q->where('atividades.municipio_id', $municipioId))
             ->when($momento !== '', fn ($q) => $q->where('atividades.descricao', $momento))
@@ -312,22 +327,18 @@ class DashboardController extends Controller
                     $w->where('atividades.descricao', 'like', $like)
                         ->orWhere('eventos.nome', 'like', $like);
                 });
-            })
+            });
+
+        // Conta o universo filtrado antes de aplicar o teto, para sinalizar truncamento na view.
+        $totalAtividades = (clone $atividadesQuery)->count('atividades.id');
+
+        $atividades = $atividadesQuery
             ->orderBy($orderByCol, $dir)
             ->orderBy('atividades.id', 'desc')
+            ->limit($maxAtividades)
             ->get();
 
-        $atividades->transform(function ($atividade) {
-            $inscricoes = collect($atividade->inscricoes ?? []);
-            $presentes = collect($atividade->presencas ?? []);
-            $presentesIds = $presentes->pluck('inscricao_id')->filter()->unique();
-
-            $atividade->inscritos_count = $inscricoes->count();
-            $atividade->presentes_count = $presentesIds->count();
-            $atividade->ausentes_count = max($atividade->inscritos_count - $atividade->presentes_count, 0);
-
-            return $atividade;
-        });
+        $truncado = $totalAtividades > $maxAtividades;
 
         $eventoSelecionado = $eventoId ? Evento::find($eventoId) : null;
         $municipioSelecionado = $municipioId
@@ -353,6 +364,9 @@ class DashboardController extends Controller
             'atividades' => $atividades,
             'filtroResumo' => $filtroResumo,
             'filtros' => $request->query(),
+            'truncado' => $truncado,
+            'totalAtividades' => $totalAtividades,
+            'maxAtividades' => $maxAtividades,
         ])
             ->format('a4')
             ->withAlfaEjaBrand()

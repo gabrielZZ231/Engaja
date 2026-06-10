@@ -1,13 +1,13 @@
 <?php
 
-use App\Http\Controllers\AutorizacaoImagemImportController;
-use App\Http\Controllers\AvaliacaoController;
 use App\Http\Controllers\AgendamentoController;
 use App\Http\Controllers\AgendamentoEfetivacaoController;
 use App\Http\Controllers\AgendamentoParticipanteController;
 use App\Http\Controllers\AtividadeAcaoController;
 use App\Http\Controllers\AtividadeController;
+use App\Http\Controllers\AutorizacaoImagemImportController;
 use App\Http\Controllers\AvaliacaoAtividadeController;
+use App\Http\Controllers\AvaliacaoController;
 use App\Http\Controllers\CertificadoController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DimensaoController;
@@ -20,15 +20,15 @@ use App\Http\Controllers\InscricaoController;
 use App\Http\Controllers\ModeloCertificadoController;
 use App\Http\Controllers\MunicipioController;
 use App\Http\Controllers\ParticipantesExclusivosController;
-use App\Http\Controllers\UsuariosSemVinculoController;
 use App\Http\Controllers\PresencaController;
 use App\Http\Controllers\PresencaImportController;
 use App\Http\Controllers\ProfileController;
 use App\Http\Controllers\QuestaoController;
 use App\Http\Controllers\RegiaoController;
-use App\Http\Controllers\TemplateAvaliacaoController;
 use App\Http\Controllers\RelatorioQuantitativoController;
+use App\Http\Controllers\TemplateAvaliacaoController;
 use App\Http\Controllers\UserManagementController;
+use App\Http\Controllers\UsuariosSemVinculoController;
 use Illuminate\Support\Facades\Route;
 
 Route::get('/', function () {
@@ -38,6 +38,7 @@ Route::get('/', function () {
 Route::middleware(['auth', 'role:administrador|gerente|eq_pedagogica|articulador'])->group(function () {
     Route::get('/dashboard', [DashboardController::class, 'home'])->middleware(['auth', 'verified'])->name('dashboard');
     Route::get('/dashboards/presencas', [DashboardController::class, 'index'])->middleware(['auth', 'verified'])->name('dashboards.presencas');
+    Route::get('/dashboards/presencas/{atividade}/detalhes', [DashboardController::class, 'presencasDetalhes'])->middleware(['auth', 'verified'])->name('dashboards.presencas.detalhes');
     Route::get('/dashboard/export', [DashboardController::class, 'export'])->middleware(['auth', 'verified'])->name('dashboard.export');
     Route::get('/dashboards/avaliacoes', [DashboardController::class, 'avaliacoes'])->middleware(['auth', 'verified'])->name('dashboards.avaliacoes');
     Route::get('/dashboards/avaliacoes/dados', [DashboardController::class, 'avaliacoesData'])->middleware(['auth', 'verified'])->name('dashboards.avaliacoes.data');
@@ -226,7 +227,7 @@ Route::middleware(['auth', 'role:administrador|gerente|eq_pedagogica|articulador
         Route::post('certificados/emitir', [CertificadoController::class, 'emitirPorParticipantes'])->name('certificados.emitir');
         Route::get('exportar', [UserManagementController::class, 'export'])->name('export');
         Route::get('autorizacoes-imagem/importar', [AutorizacaoImagemImportController::class, 'import'])->name('autorizacoes.import');
-        Route::post('autorizacoes-imagem/importar', [\App\Http\Controllers\AutorizacaoImagemImportController::class, 'upload'])->name('autorizacoes.upload');
+        Route::post('autorizacoes-imagem/importar', [AutorizacaoImagemImportController::class, 'upload'])->name('autorizacoes.upload');
         Route::get('autorizacoes-imagem/preview', [AutorizacaoImagemImportController::class, 'preview'])->name('autorizacoes.preview');
         Route::post('autorizacoes-imagem/confirmar', [AutorizacaoImagemImportController::class, 'confirmar'])->name('autorizacoes.confirmar');
     });
