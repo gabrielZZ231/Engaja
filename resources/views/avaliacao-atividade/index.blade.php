@@ -179,7 +179,7 @@
                                                 <a href="{{ route('avaliacao-atividade.download', $relatorio) }}" class="btn btn-sm btn-outline-secondary">PDF</a>
                                             </div>
                                         </div>
-                                        <div>{{ $relatorio->$campo }}</div>
+                                        <div style="white-space: pre-wrap;">{{ $relatorio->$campo }}</div>
                                     </div>
                                 @endforeach
                             @endif

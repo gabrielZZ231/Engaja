@@ -113,40 +113,12 @@
                 </div>
             </div>
 
+            @foreach($camposPerguntas as $campo => $pergunta)
             <div class="mb-3">
-                <span class="text-muted small d-block">Avaliação da logística</span>
-                <div class="border rounded p-2 bg-light">{{ $relatorio->avaliacao_logistica ?: '—' }}</div>
+                <span class="text-muted small d-block">{{ $pergunta }}</span>
+                <div class="border rounded p-2 bg-light" style="white-space: pre-wrap;">{{ $relatorio->$campo ?: '—' }}</div>
             </div>
-
-            <div class="mb-3">
-                <span class="text-muted small d-block">Avaliação do acolhimento e apoio da SME</span>
-                <div class="border rounded p-2 bg-light">{{ $relatorio->avaliacao_acolhimento_sme ?: '—' }}</div>
-            </div>
-
-            <div class="mb-3">
-                <span class="text-muted small d-block">Atuação da equipe do IPF</span>
-                <div class="border rounded p-2 bg-light">{{ $relatorio->avaliacao_atuacao_equipe ?: '—' }}</div>
-            </div>
-
-            <div class="mb-3">
-                <span class="text-muted small d-block">Planejamento adequado</span>
-                <div class="border rounded p-2 bg-light">{{ $relatorio->avaliacao_planejamento ?: '—' }}</div>
-            </div>
-
-            <div class="mb-3">
-                <span class="text-muted small d-block">Recursos materiais</span>
-                <div class="border rounded p-2 bg-light">{{ $relatorio->avaliacao_recursos_materiais ?: '—' }}</div>
-            </div>
-
-            <div class="mb-3">
-                <span class="text-muted small d-block">Links e QR codes</span>
-                <div class="border rounded p-2 bg-light">{{ $relatorio->avaliacao_links_presenca ?: '—' }}</div>
-            </div>
-
-            <div class="mb-0">
-                <span class="text-muted small d-block">Destaques da ação</span>
-                <div class="border rounded p-2 bg-light">{{ $relatorio->avaliacao_destaques ?: '—' }}</div>
-            </div>
+            @endforeach
         </div>
     </div>
 
