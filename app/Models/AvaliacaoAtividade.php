@@ -20,6 +20,7 @@ class AvaliacaoAtividade extends Model
         'avaliacao_links_presenca',
         'avaliacao_destaques',
         'avaliacao_atuacao_equipe',
+        'questao_unificada',
         'checklist_pos_acao',
     ];
 

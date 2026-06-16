@@ -19,13 +19,7 @@ class AvaliacaoAtividadeController extends Controller
     private const REPORT_EDIT_ROLES = ['administrador', 'gerente'];
 
     private const REPORT_QUESTION_FIELDS = [
-        'avaliacao_logistica' => 'Quais melhorias você sugere para a logística do evento?',
-        'avaliacao_acolhimento_sme' => 'Como você avalia o acolhimento e apoio da SME?',
-        'avaliacao_atuacao_equipe' => 'Como você avalia a atuação da equipe do IPF?',
-        'avaliacao_planejamento' => 'O planejamento desta ação foi suficiente e adequado?',
-        'avaliacao_recursos_materiais' => 'Os recursos materiais atenderam aos objetivos da ação?',
-        'avaliacao_links_presenca' => 'Os links e QR codes funcionaram corretamente?',
-        'avaliacao_destaques' => 'Que destaques sobre esta ação você considera importantes?',
+        'questao_unificada' => 'Avaliação Geral do Momento (Logística, Acolhimento, Planejamento, Atuação da equipe, Recursos e Destaques).',
     ];
 
     private function parseIntArray(Request $request, string $key): array
@@ -120,13 +114,7 @@ class AvaliacaoAtividadeController extends Controller
             'nome_educador' => ['nullable', 'string', 'max:255'],
             'qtd_participantes_prefeitura' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'qtd_participantes_movimentos_sociais' => ['nullable', 'integer', 'min:0', 'max:9999'],
-            'avaliacao_logistica' => ['nullable', 'string'],
-            'avaliacao_acolhimento_sme' => ['nullable', 'string'],
-            'avaliacao_recursos_materiais' => ['nullable', 'string'],
-            'avaliacao_planejamento' => ['nullable', 'string'],
-            'avaliacao_links_presenca' => ['nullable', 'string'],
-            'avaliacao_destaques' => ['nullable', 'string'],
-            'avaliacao_atuacao_equipe' => ['nullable', 'string'],
+            'questao_unificada' => ['nullable', 'string'],
             'checklist_pos_acao' => ['nullable', 'array'],
             'checklist_pos_acao.*' => ['string', 'max:100'],
         ];
@@ -257,6 +245,7 @@ class AvaliacaoAtividadeController extends Controller
         return view('avaliacao-atividade.show', [
             'relatorio' => $relatorio,
             'resumoPublico' => $this->buildResumoPublicoForRelatorio($relatorio),
+            'camposPerguntas' => self::REPORT_QUESTION_FIELDS,
         ]);
     }
 
