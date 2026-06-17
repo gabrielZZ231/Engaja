@@ -3,7 +3,11 @@
 @section('content')
 @php
   $isUniversal = $avaliacao->atividade_id === null;
-  $backUrl = $isUniversal ? route('avaliacoes-universais.index') : route('avaliacoes.show', $avaliacao);
+  $isTranscricao = $avaliacao->transcricao;
+  $isSemPresenca = $isUniversal || $isTranscricao;
+  $backUrl = $isUniversal
+    ? route('avaliacoes-universais.index')
+    : ($isTranscricao ? route('avaliacoes-transcricoes.index') : route('avaliacoes.show', $avaliacao));
 @endphp
 <div class="row justify-content-center">
   <div class="col-xl-10">
@@ -17,6 +21,10 @@
         <p class="mb-3">
           @if($isUniversal)
           <strong>Avaliação universal:</strong> {{ $avaliacao->descricao_universal ?: 'Sem descrição' }}<br>
+          @elseif($isTranscricao)
+          <strong>Transcrição:</strong> {{ $avaliacao->descricao_universal ?: 'Sem descrição' }}<br>
+          <strong>Momento:</strong> {{ $avaliacao->atividade->descricao ?? 'N/A' }} —
+          <strong>Ação pedagógica:</strong> {{ $avaliacao->atividade->evento->nome ?? 'N/A' }}<br>
           @else
           <strong>Atividade:</strong> {{ $avaliacao->atividade->descricao ?? 'N/A' }} —
           <strong>Ação pedagógica:</strong> {{ $avaliacao->atividade->evento->nome ?? 'N/A' }}<br>
@@ -31,7 +39,7 @@
             <table class="table align-middle">
               <thead>
                 <tr>
-                  @unless($isUniversal)
+                  @unless($isSemPresenca)
                   <th>Participante</th>
                   <th>Email</th>
                   @endunless
@@ -42,10 +50,10 @@
               <tbody>
                 @foreach($submissoes as $submissao)
                   @php
-                    $user = $submissao->presenca->inscricao->participante->user ?? null;
+                    $user = $isSemPresenca ? null : ($submissao->presenca->inscricao->participante->user ?? null);
                   @endphp
                   <tr>
-                    @unless($isUniversal)
+                    @unless($isSemPresenca)
                     <td>{{ $user?->name ?? 'N/A' }}</td>
                     <td>{{ $user?->email ?? 'N/A' }}</td>
                     @endunless

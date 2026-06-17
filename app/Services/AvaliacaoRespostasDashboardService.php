@@ -2,24 +2,43 @@
 
 namespace App\Services;
 
+use App\Models\AvaliacaoQuestao;
 use App\Models\RespostaAvaliacao;
 use App\Models\SubmissaoAvaliacao;
+use Carbon\Carbon;
 use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
+use Illuminate\Support\Facades\DB;
 
 class AvaliacaoRespostasDashboardService
 {
     /**
      * Payload idêntico ao JSON de dashboards.avaliacoes.data (totais, perguntas, recentes).
+     * Suporta paginação de perguntas via ?page=1&per_page=20.
      */
     public function buildDashboardPayload(Request $request): array
     {
-        $respostas = $this->filtrarRespostas($request);
-        $perguntas = $this->montarPerguntas($respostas);
+        $page = max((int) $request->query('page', 1), 1);
+        $perPage = min(max((int) $request->query('per_page', 50), 1), 100);
+
+        $agregados = $this->filtrarRespostasAgregadas($request);
+        $questaoIds = $agregados->pluck('avaliacao_questao_id')->unique()->filter()->values();
+
+        $questoes = AvaliacaoQuestao::with(['escala', 'indicador.dimensao'])
+            ->whereIn('id', $questaoIds)
+            ->get()
+            ->keyBy('id');
+
+        $perguntas = $this->montarPerguntas($agregados, $questoes);
 
         $submissoesBase = $this->filtrarSubmissoes($request);
         $submissoesTable = (new SubmissaoAvaliacao)->getTable();
-        $isUniversal = $this->isUniversalRequest($request);
+        $tipo = $this->tipoRequest($request);
+        $isUniversal = $tipo === 'universal';
+
+        $totalRespostas = $agregados->sum('count');
+        $ultimaResposta = $agregados->max('ultima');
+
         $totais = [
             'submissoes' => (clone $submissoesBase)->count(),
             'atividades' => (clone $submissoesBase)->distinct('atividade_id')->count('atividade_id'),
@@ -29,37 +48,41 @@ class AvaliacaoRespostasDashboardService
                     ->leftJoin('atividades', 'atividades.id', '=', "{$submissoesTable}.atividade_id")
                     ->distinct('atividades.evento_id')
                     ->count('atividades.evento_id'),
-            'respostas' => $respostas->count(),
+            'respostas' => $totalRespostas,
             'questoes' => $perguntas->count(),
-            'ultima' => optional($respostas->sortByDesc('created_at')->first())->created_at?->format('d/m/Y H:i'),
-            'modo' => $isUniversal ? 'universal' : 'momento',
+            'ultima' => $ultimaResposta ? Carbon::parse($ultimaResposta)->format('d/m/Y H:i') : null,
+            'modo' => $tipo,
         ];
 
-        $recentes = $respostas
-            ->sortByDesc('created_at')
-            ->take(8)
-            ->map(function ($resposta) {
-                $questao = $resposta->avaliacaoQuestao;
+        $recentes = $this->buscarRecentes($request);
 
-                return [
-                    'questao' => $questao?->texto ?? 'Questão',
-                    'valor' => $this->respostaParaTexto($resposta->resposta),
-                    'quando' => optional($resposta->created_at)->format('d/m H:i'),
-                ];
-            })
+        $totalPerguntas = $perguntas->count();
+        $perguntasPaginadas = $perguntas
+            ->slice(($page - 1) * $perPage, $perPage)
             ->values();
 
         return [
             'totais' => $totais,
-            'perguntas' => $perguntas->values()->all(),
+            'perguntas' => $perguntasPaginadas->all(),
             'recentes' => $recentes,
+            'filtros' => [
+                'de' => $request->get('de'),
+                'ate' => $request->get('ate'),
+            ],
+            'meta' => [
+                'total' => $totalPerguntas,
+                'page' => $page,
+                'per_page' => $perPage,
+                'last_page' => (int) ceil($totalPerguntas / $perPage),
+            ],
         ];
     }
 
     /**
-     * Carrega respostas com colunas mínimas e relações necessárias ao agregado (menos memória que resposta_avaliacaos.*).
+     * Carrega respostas agregadas por (avaliacao_questao_id, resposta) usando JOIN em vez de whereHas.
+     * Reduz drasticamente o número de linhas retornadas ao banco em vez de uma linha por resposta individual.
      */
-    public function filtrarRespostas(Request $request): Collection
+    public function filtrarRespostasAgregadas(Request $request): Collection
     {
         $respostasTable = (new RespostaAvaliacao)->getTable();
         $templateId = $request->integer('template_id');
@@ -68,31 +91,83 @@ class AvaliacaoRespostasDashboardService
         $avaliacaoId = $request->integer('avaliacao_id');
         $de = $request->date('de');
         $ate = $request->date('ate');
-        $isUniversal = $this->isUniversalRequest($request);
+        $tipo = $this->tipoRequest($request);
+        $isUniversal = $tipo === 'universal';
+
+        $query = RespostaAvaliacao::query()
+            ->select([
+                DB::raw("{$respostasTable}.avaliacao_questao_id"),
+                DB::raw("{$respostasTable}.resposta"),
+                DB::raw('COUNT(*) as count'),
+                DB::raw("MAX({$respostasTable}.created_at) as ultima"),
+            ])
+            ->join('avaliacaos', 'avaliacaos.id', '=', "{$respostasTable}.avaliacao_id")
+            ->when($isUniversal, fn ($q) => $q->whereNull('avaliacaos.atividade_id'))
+            ->when(! $isUniversal, fn ($q) => $q->whereNotNull('avaliacaos.atividade_id'))
+            ->when($tipo === 'transcricao', fn ($q) => $q->where('avaliacaos.transcricao', true))
+            ->when($tipo === 'momento', fn ($q) => $q->where('avaliacaos.transcricao', false))
+            ->when($templateId, fn ($q) => $q->where('avaliacaos.template_avaliacao_id', $templateId))
+            ->when($isUniversal && $avaliacaoId, fn ($q) => $q->where("{$respostasTable}.avaliacao_id", $avaliacaoId))
+            ->when($atividadeId, fn ($q) => $q->where('avaliacaos.atividade_id', $atividadeId))
+            ->when(! $isUniversal && $eventoId, function ($q) use ($eventoId) {
+                $q->join('atividades', 'atividades.id', '=', 'avaliacaos.atividade_id')
+                    ->where('atividades.evento_id', $eventoId);
+            })
+            ->when($de, fn ($q) => $q->whereDate("{$respostasTable}.created_at", '>=', $de))
+            ->when($ate, fn ($q) => $q->whereDate("{$respostasTable}.created_at", '<=', $ate))
+            ->groupBy("{$respostasTable}.avaliacao_questao_id", "{$respostasTable}.resposta");
+
+        return $query->get();
+    }
+
+    /**
+     * Busca os 8 registros mais recentes sem carregar todo o dataset.
+     */
+    private function buscarRecentes(Request $request): Collection
+    {
+        $respostasTable = (new RespostaAvaliacao)->getTable();
+        $templateId = $request->integer('template_id');
+        $eventoId = $request->integer('evento_id');
+        $atividadeId = $request->integer('atividade_id');
+        $avaliacaoId = $request->integer('avaliacao_id');
+        $de = $request->date('de');
+        $ate = $request->date('ate');
+        $tipo = $this->tipoRequest($request);
+        $isUniversal = $tipo === 'universal';
 
         return RespostaAvaliacao::query()
             ->select([
-                "{$respostasTable}.id",
-                "{$respostasTable}.avaliacao_id",
                 "{$respostasTable}.avaliacao_questao_id",
-                "{$respostasTable}.submissao_avaliacao_id",
                 "{$respostasTable}.resposta",
                 "{$respostasTable}.created_at",
             ])
-            ->with([
-                'avaliacaoQuestao.escala',
-                'avaliacaoQuestao.indicador.dimensao',
-                'avaliacao.atividade.evento',
-                'avaliacao.templateAvaliacao',
-            ])
-            ->whereHas('avaliacao', fn ($aq) => $isUniversal ? $aq->whereNull('atividade_id') : $aq->whereNotNull('atividade_id'))
-            ->when($templateId, fn ($q) => $q->whereHas('avaliacao', fn ($aq) => $aq->where('template_avaliacao_id', $templateId)))
-            ->when($isUniversal && $avaliacaoId, fn ($q) => $q->where('avaliacao_id', $avaliacaoId))
-            ->when($atividadeId, fn ($q) => $q->whereHas('avaliacao', fn ($aq) => $aq->where('atividade_id', $atividadeId)))
-            ->when(! $isUniversal && $eventoId, fn ($q) => $q->whereHas('avaliacao.atividade', fn ($aq) => $aq->where('evento_id', $eventoId)))
+            ->join('avaliacaos', 'avaliacaos.id', '=', "{$respostasTable}.avaliacao_id")
+            ->when($isUniversal, fn ($q) => $q->whereNull('avaliacaos.atividade_id'))
+            ->when(! $isUniversal, fn ($q) => $q->whereNotNull('avaliacaos.atividade_id'))
+            ->when($tipo === 'transcricao', fn ($q) => $q->where('avaliacaos.transcricao', true))
+            ->when($tipo === 'momento', fn ($q) => $q->where('avaliacaos.transcricao', false))
+            ->when($templateId, fn ($q) => $q->where('avaliacaos.template_avaliacao_id', $templateId))
+            ->when($isUniversal && $avaliacaoId, fn ($q) => $q->where("{$respostasTable}.avaliacao_id", $avaliacaoId))
+            ->when($atividadeId, fn ($q) => $q->where('avaliacaos.atividade_id', $atividadeId))
+            ->when(! $isUniversal && $eventoId, function ($q) use ($eventoId) {
+                $q->join('atividades', 'atividades.id', '=', 'avaliacaos.atividade_id')
+                    ->where('atividades.evento_id', $eventoId);
+            })
             ->when($de, fn ($q) => $q->whereDate("{$respostasTable}.created_at", '>=', $de))
             ->when($ate, fn ($q) => $q->whereDate("{$respostasTable}.created_at", '<=', $ate))
-            ->get();
+            ->orderByDesc("{$respostasTable}.created_at")
+            ->limit(8)
+            ->get()
+            ->map(function ($resposta) {
+                $questaoId = $resposta->avaliacao_questao_id;
+
+                return [
+                    'questao' => AvaliacaoQuestao::find($questaoId)?->texto ?? 'Questão',
+                    'valor' => $this->respostaParaTexto($resposta->resposta),
+                    'quando' => optional($resposta->created_at)->format('d/m H:i'),
+                ];
+            })
+            ->values();
     }
 
     public function filtrarSubmissoes(Request $request)
@@ -104,7 +179,8 @@ class AvaliacaoRespostasDashboardService
         $avaliacaoId = $request->integer('avaliacao_id');
         $de = $request->date('de');
         $ate = $request->date('ate');
-        $isUniversal = $this->isUniversalRequest($request);
+        $tipo = $this->tipoRequest($request);
+        $isUniversal = $tipo === 'universal';
 
         return SubmissaoAvaliacao::query()
             ->when(
@@ -112,6 +188,8 @@ class AvaliacaoRespostasDashboardService
                 fn ($q) => $q->whereNull('atividade_id')->where('universal', true),
                 fn ($q) => $q->whereNotNull('atividade_id')
             )
+            ->when($tipo === 'transcricao', fn ($q) => $q->whereHas('avaliacao', fn ($aq) => $aq->where('transcricao', true)))
+            ->when($tipo === 'momento', fn ($q) => $q->whereHas('avaliacao', fn ($aq) => $aq->where('transcricao', false)))
             ->when($templateId, fn ($q) => $q->whereHas('avaliacao', fn ($aq) => $aq->where('template_avaliacao_id', $templateId)))
             ->when($isUniversal && $avaliacaoId, fn ($q) => $q->where('avaliacao_id', $avaliacaoId))
             ->when(! $isUniversal && $atividadeId, fn ($q) => $q->where('atividade_id', $atividadeId))
@@ -120,24 +198,60 @@ class AvaliacaoRespostasDashboardService
             ->when($ate, fn ($q) => $q->whereDate("{$submissoesTable}.created_at", '<=', $ate));
     }
 
-    private function isUniversalRequest(Request $request): bool
+    /**
+     * Adapta uma Collection de modelos RespostaAvaliacao (eager-loaded) para o formato agregado
+     * e chama montarPerguntas(). Usado por serviços que já carregaram os dados individualmente.
+     */
+    public function montarPerguntasFromRespostas(Collection $respostas): Collection
     {
-        return $request->query('tipo') === 'universal';
+        $questoes = $respostas
+            ->pluck('avaliacaoQuestao')
+            ->filter()
+            ->keyBy('id');
+
+        $agregados = $respostas
+            ->groupBy(fn ($r) => ($r->avaliacao_questao_id ?? '').'|||'.($r->resposta ?? ''))
+            ->map(fn ($group) => (object) [
+                'avaliacao_questao_id' => $group->first()->avaliacao_questao_id,
+                'resposta' => $group->first()->resposta,
+                'count' => $group->count(),
+                'ultima' => $group->max('created_at'),
+            ])
+            ->values();
+
+        return $this->montarPerguntas($agregados, $questoes);
     }
 
-    public function montarPerguntas(Collection $respostas): Collection
+    private function tipoRequest(Request $request): string
     {
-        $blocos = $respostas
+        $tipo = $request->query('tipo');
+
+        return in_array($tipo, ['universal', 'momento', 'transcricao'], true)
+            ? $tipo
+            : 'momento';
+    }
+
+    /**
+     * Monta blocos de perguntas a partir de dados já agregados no banco (avaliacao_questao_id, resposta, count, ultima).
+     * Cada $questao é um AvaliacaoQuestao carregado separadamente via whereIn.
+     *
+     * @param  Collection<int, object{avaliacao_questao_id: int, resposta: ?string, count: int, ultima: ?string}>  $agregados
+     * @param  Collection<int, AvaliacaoQuestao>  $questoes  Keyed by id
+     */
+    public function montarPerguntas(Collection $agregados, Collection $questoes): Collection
+    {
+        $blocos = $agregados
             ->groupBy('avaliacao_questao_id')
-            ->map(function ($items) {
-                $questao = $items->first()->avaliacaoQuestao;
+            ->map(function ($items, $questaoId) use ($questoes) {
+                $questao = $questoes->get($questaoId);
                 $tipo = $questao?->tipo ?? 'texto';
+                $totalRespostas = $items->sum('count');
 
                 $bloco = [
-                    'id' => $questao?->id ?? $items->first()->avaliacao_questao_id,
+                    'id' => $questao?->id ?? $questaoId,
                     'texto' => $questao?->texto ?? 'Questão',
                     'tipo' => $tipo,
-                    'total' => $items->count(),
+                    'total' => $totalRespostas,
                     'labels' => [],
                     'values' => [],
                     'media' => null,
@@ -150,19 +264,32 @@ class AvaliacaoRespostasDashboardService
                 ];
 
                 if ($tipo === 'boolean') {
-                    $sim = $items->filter(fn ($r) => $this->respostaParaBool($r->resposta) === true)->count();
-                    $nao = $items->filter(fn ($r) => $this->respostaParaBool($r->resposta) === false)->count();
-                    $invalidos = $items->count() - $sim - $nao;
-                    $validTotal = $sim + $nao;
+                    $sim = 0;
+                    $nao = 0;
+                    $invalidos = 0;
 
-                    $bloco['labels'] = ['Sim', 'Nao'];
+                    foreach ($items as $item) {
+                        $bool = $this->respostaParaBool($item->resposta);
+                        $cnt = (int) $item->count;
+                        if ($bool === true) {
+                            $sim += $cnt;
+                        } elseif ($bool === false) {
+                            $nao += $cnt;
+                        } else {
+                            $invalidos += $cnt;
+                        }
+                    }
+
+                    $validTotal = $sim + $nao;
+                    $bloco['labels'] = ['Sim', 'Não'];
                     $bloco['values'] = [$sim, $nao];
+
                     if ($invalidos > 0) {
                         $bloco['labels'][] = 'Indefinido';
                         $bloco['values'][] = $invalidos;
                     }
 
-                    if ($items->isEmpty()) {
+                    if ($totalRespostas === 0) {
                         $bloco['resumo'] = 'Sem respostas';
                     } elseif ($validTotal === 0) {
                         $bloco['resumo'] = 'Nenhuma resposta classificável como Sim/Não';
@@ -177,56 +304,106 @@ class AvaliacaoRespostasDashboardService
                 }
 
                 if ($tipo === 'escala') {
-                    [$labels, $values] = $this->montarDistribuicaoOpcoes(
+                    [$labels, $values] = $this->montarDistribuicaoAgregada(
                         $items,
                         $questao?->escala?->valores ?? []
                     );
-
                     $bloco['labels'] = $labels;
                     $bloco['values'] = $values;
 
-                    $media = $this->calcularMediaNumerica($items);
+                    $media = $this->calcularMediaAgregada($items);
                     $bloco['media'] = $media;
-                    $bloco['resumo'] = $media !== null ? 'Media '.number_format($media, 1, ',', '.') : null;
+                    $bloco['resumo'] = $media !== null ? 'Média '.number_format($media, 1, ',', '.') : null;
 
                     return $bloco;
                 }
 
                 if ($tipo === 'unica') {
-                    [$labels, $values] = $this->montarDistribuicaoOpcoes(
+                    [$labels, $values] = $this->montarDistribuicaoAgregada(
                         $items,
                         $questao?->opcoes_resposta ?? []
                     );
-
                     $bloco['labels'] = $labels;
                     $bloco['values'] = $values;
 
                     return $bloco;
                 }
 
-                if ($tipo === 'numero') {
-                    $numeros = $items->map(function ($r) {
-                        $v = $this->respostaParaTexto($r->resposta);
+                if ($tipo === 'multipla') {
+                    $opcoesConfiguradas = $questao?->opcoes_resposta ?? [];
+                    $opcoes = collect($opcoesConfiguradas)
+                        ->map(fn ($opcao) => is_string($opcao) ? trim($opcao) : '')
+                        ->filter()
+                        ->values()
+                        ->all();
 
-                        return is_numeric($v) ? (float) $v : null;
-                    })->filter();
-                    $porValor = $numeros->groupBy(fn ($v) => (string) $v);
-                    $bloco['labels'] = $porValor->keys()->values()->all();
-                    $bloco['values'] = $porValor->map->count()->values()->all();
-                    $media = $numeros->isEmpty() ? null : $numeros->avg();
-                    $bloco['media'] = $numeros->isEmpty() ? null : round((float) $media, 2);
-                    $bloco['min'] = $numeros->isEmpty() ? null : $numeros->min();
-                    $bloco['max'] = $numeros->isEmpty() ? null : $numeros->max();
-                    $bloco['resumo'] = $numeros->isEmpty()
-                        ? null
-                        : 'Media '.number_format((float) $media, 2, ',', '.');
+                    $contagem = array_fill_keys($opcoes, 0);
+
+                    foreach ($items as $item) {
+                        $cnt = (int) $item->count;
+                        $valores = is_string($item->resposta)
+                            ? json_decode($item->resposta, true)
+                            : $item->resposta;
+
+                        if (is_array($valores)) {
+                            foreach ($valores as $valor) {
+                                $v = trim((string) $valor);
+                                if ($v === '') {
+                                    continue;
+                                }
+                                if (! array_key_exists($v, $contagem)) {
+                                    $contagem[$v] = 0;
+                                }
+                                $contagem[$v] += $cnt;
+                            }
+                        }
+                    }
+
+                    $bloco['labels'] = array_keys($contagem);
+                    $bloco['values'] = array_values($contagem);
 
                     return $bloco;
                 }
 
+                if ($tipo === 'numero') {
+                    $porValor = [];
+                    $soma = 0.0;
+                    $totalNums = 0;
+                    $min = null;
+                    $max = null;
+
+                    foreach ($items as $item) {
+                        $v = $this->respostaParaTexto($item->resposta);
+                        if (! is_numeric($v)) {
+                            continue;
+                        }
+                        $num = (float) $v;
+                        $cnt = (int) $item->count;
+                        $chave = (string) $num;
+                        $porValor[$chave] = ($porValor[$chave] ?? 0) + $cnt;
+                        $soma += $num * $cnt;
+                        $totalNums += $cnt;
+                        $min = $min === null ? $num : min($min, $num);
+                        $max = $max === null ? $num : max($max, $num);
+                    }
+
+                    $bloco['labels'] = array_keys($porValor);
+                    $bloco['values'] = array_values($porValor);
+                    $media = $totalNums > 0 ? round($soma / $totalNums, 2) : null;
+                    $bloco['media'] = $media;
+                    $bloco['min'] = $min;
+                    $bloco['max'] = $max;
+                    $bloco['resumo'] = $media !== null
+                        ? 'Média '.number_format($media, 2, ',', '.')
+                        : null;
+
+                    return $bloco;
+                }
+
+                // tipo texto: usa os valores agregados (cada texto único aparece uma vez)
                 $respostasTexto = $items
-                    ->sortByDesc('created_at')
-                    ->map(fn ($r) => $this->respostaParaTexto($r->resposta))
+                    ->sortByDesc('ultima')
+                    ->map(fn ($item) => $this->respostaParaTexto($item->resposta))
                     ->filter()
                     ->values();
 
@@ -250,7 +427,12 @@ class AvaliacaoRespostasDashboardService
         })->values();
     }
 
-    private function montarDistribuicaoOpcoes(Collection $items, array $opcoesConfiguradas = []): array
+    /**
+     * Monta distribuição de opções a partir de dados pré-agregados (resposta, count).
+     *
+     * @param  Collection<int, object{resposta: ?string, count: int}>  $items
+     */
+    private function montarDistribuicaoAgregada(Collection $items, array $opcoesConfiguradas = []): array
     {
         $opcoes = collect($opcoesConfiguradas)
             ->map(fn ($opcao) => is_string($opcao) ? trim($opcao) : '')
@@ -259,8 +441,8 @@ class AvaliacaoRespostasDashboardService
             ->all();
 
         if (empty($opcoes)) {
-            foreach ($items as $resposta) {
-                $valor = $this->respostaParaTexto($resposta->resposta);
+            foreach ($items as $item) {
+                $valor = $this->respostaParaTexto($item->resposta);
                 if ($valor !== '' && ! in_array($valor, $opcoes, true)) {
                     $opcoes[] = $valor;
                 }
@@ -272,13 +454,12 @@ class AvaliacaoRespostasDashboardService
             $contagem[$opcao] = 0;
         }
 
-        foreach ($items as $resposta) {
-            $valor = $this->respostaParaTexto($resposta->resposta);
+        foreach ($items as $item) {
+            $valor = $this->respostaParaTexto($item->resposta);
             if ($valor === '') {
                 continue;
             }
-
-            $contagem[$valor] = ($contagem[$valor] ?? 0) + 1;
+            $contagem[$valor] = ($contagem[$valor] ?? 0) + (int) $item->count;
         }
 
         $labelsOrdenadas = [];
@@ -346,18 +527,30 @@ class AvaliacaoRespostasDashboardService
         return null;
     }
 
-    public function calcularMediaNumerica($items): ?float
+    /**
+     * Calcula média numérica a partir de dados pré-agregados (resposta, count).
+     *
+     * @param  Collection<int, object{resposta: ?string, count: int}>  $items
+     */
+    public function calcularMediaAgregada(Collection $items): ?float
     {
-        $numeros = $items->map(function ($resposta) {
-            $valor = $this->respostaParaTexto($resposta->resposta);
+        $soma = 0.0;
+        $total = 0;
 
-            return is_numeric($valor) ? (float) $valor : null;
-        })->filter();
+        foreach ($items as $item) {
+            $valor = $this->respostaParaTexto($item->resposta);
+            if (! is_numeric($valor)) {
+                continue;
+            }
+            $cnt = (int) $item->count;
+            $soma += (float) $valor * $cnt;
+            $total += $cnt;
+        }
 
-        if ($numeros->isEmpty()) {
+        if ($total === 0) {
             return null;
         }
 
-        return round((float) $numeros->avg(), 1);
+        return round($soma / $total, 1);
     }
 }

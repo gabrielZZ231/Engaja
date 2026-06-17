@@ -16,6 +16,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Collection;
 use Illuminate\Support\Facades\DB;
 use Illuminate\Support\Str;
+use Spatie\LaravelPdf\Facades\Pdf;
 
 class AtividadeController extends Controller
 {
@@ -446,6 +447,28 @@ class AtividadeController extends Controller
         }
     }
 
+    public function downloadListaPresencaSimplesView(Atividade $atividade)
+    {
+        $this->authorize('presenca.abrir');
+
+        $inscricoes = $atividade->inscricoes()->with([
+            'participante.user',
+            'participante.municipio.estado',
+        ])->get()->sortBy(function ($inscricao) {
+            return Str::ascii(mb_strtolower($inscricao->participante->user->name ?? ''));
+        })->values();
+
+        $fileName = 'Lista_Presenca_'.Str::slug($atividade->descricao).'.pdf';
+
+        return Pdf::view('pdf.lista-presenca-simples', [
+            'atividade' => $atividade,
+            'inscricoes' => $inscricoes,
+        ])
+            ->format('a4')
+            ->withAlfaEjaBrand()
+            ->download($fileName);
+    }
+
     public function downloadListaAutorizacaoImagemPdf(Atividade $atividade)
     {
         $this->authorize('presenca.abrir');
@@ -525,7 +548,7 @@ class AtividadeController extends Controller
 
     public function diario(Atividade $atividade)
     {
-        //carrega as inscrições do evento com os dados do usuário para listar na tela
+        // carrega as inscrições do evento com os dados do usuário para listar na tela
         $inscricoes = $atividade->inscricoes()
             ->with(['participante.user', 'participante.municipio.estado'])
             ->get()
@@ -533,7 +556,7 @@ class AtividadeController extends Controller
                 return $inscricao->participante->user->name ?? '';
             });
 
-        //pega apenas os IDs das inscrições que já estão marcadas como "presente" nesta atividade
+        // pega apenas os IDs das inscrições que já estão marcadas como "presente" nesta atividade
         $presencasAtuais = $atividade->presencas()
             ->where('status', 'presente')
             ->pluck('inscricao_id')
@@ -545,11 +568,11 @@ class AtividadeController extends Controller
     public function salvarDiario(Request $request, Atividade $atividade)
     {
         $request->validate([
-            'inscricoes'   => 'nullable|array',
+            'inscricoes' => 'nullable|array',
             'inscricoes.*' => 'exists:inscricaos,id',
         ]);
 
-        //array com os IDs das inscrições que foram confirmadas na tela
+        // array com os IDs das inscrições que foram confirmadas na tela
         $presentes = $request->input('inscricoes', []);
 
         DB::transaction(function () use ($atividade, $presentes) {
@@ -560,15 +583,15 @@ class AtividadeController extends Controller
                 );
             }
 
-            //quem estava como presente no banco, mas NÃO veio no array atual, significa que foi desmarcado.
-            //atualizo para ausente
-            if (!empty($presentes)) {
+            // quem estava como presente no banco, mas NÃO veio no array atual, significa que foi desmarcado.
+            // atualizo para ausente
+            if (! empty($presentes)) {
                 $atividade->presencas()
                     ->whereNotIn('inscricao_id', $presentes)
                     ->where('status', 'presente')
                     ->update(['status' => 'ausente']);
             } else {
-                //se o array veio vazio,todos viram ausentes
+                // se o array veio vazio,todos viram ausentes
                 $atividade->presencas()
                     ->where('status', 'presente')
                     ->update(['status' => 'ausente']);

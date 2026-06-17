@@ -27,7 +27,7 @@
     .section-subtitle { color: #6b7280; margin: 0 0 10px 0; }
     .qa-item { margin-bottom: 14px; }
     .qa-question { font-size: 12px; font-weight: 700; color: #111827; margin: 0 0 6px 2px; }
-    .answer { border: 1px solid #e5e7eb; border-left: 4px solid #963d79; background: #f8fafc; border-radius: 0 10px 10px 3px; padding: 10px; color: #374151; }
+    .answer { border: 1px solid #e5e7eb; border-left: 4px solid #963d79; background: #f8fafc; border-radius: 0 10px 10px 3px; padding: 10px; color: #374151; word-break: break-word; overflow-wrap: break-word; }
     .answer-meta { font-size: 11px; color: #6b7280; margin-bottom: 4px; }
     .separator { margin: 14px 0; border-top: 1px dashed #cbd5e1; }
     .muted { color: #6b7280; }
@@ -85,6 +85,7 @@
                 <tr><td>Quantidade de presentes na ação</td><td class="value-number">{{ $resumoPublico['presentes'] ?? 0 }}</td></tr>
                 <tr><td>Participantes ligados aos movimentos sociais</td><td class="value-number">{{ $resumoPublico['movimentos'] ?? 0 }}</td></tr>
                 <tr><td>Participantes com vínculo com a prefeitura</td><td class="value-number">{{ $resumoPublico['prefeitura'] ?? 0 }}</td></tr>
+                <tr><td>Participantes com vínculo não informado</td><td class="value-number">{{ $resumoPublico['sem_vinculo'] ?? 0 }}</td></tr>
             </table>
         </div>
 
@@ -106,7 +107,7 @@
                                     | <strong>Enviado em:</strong> {{ $resposta['atualizado_em']->format('d/m/Y') }}
                                 @endif
                             </div>
-                            <div>{{ $resposta['resposta'] }}</div>
+                            <div>{!! nl2br(e($resposta['resposta'])) !!}</div>
                         </div>
                     @endforeach
                 @endif

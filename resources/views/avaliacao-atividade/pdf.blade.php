@@ -27,7 +27,7 @@
     .section-title { font-size: 18px; font-weight: 700; color: #111827; margin: 0 0 10px 0; border-left: 6px solid #963d79; padding-left: 10px; }
     .qa-item { margin-bottom: 14px; }
     .qa-question { font-size: 12px; font-weight: 700; color: #111827; margin: 0 0 6px 2px; }
-    .qa-answer { border: 1px solid #e5e7eb; border-left: 4px solid #963d79; background: #f8fafc; border-radius: 0 10px 10px 3px; padding: 10px; color: #374151; }
+    .qa-answer { border: 1px solid #e5e7eb; border-left: 4px solid #963d79; background: #f8fafc; border-radius: 0 10px 10px 3px; padding: 10px; color: #374151; word-break: break-word; overflow-wrap: break-word; }
 
     .checklist-wrap { border-top: 1px solid #e5e7eb; padding-top: 14px; margin-top: 6px; }
     .checklist-list { margin: 0; padding: 12px; border: 1px solid #e5e7eb; border-radius: 10px; background: #f8fafc; list-style: none; }
@@ -99,6 +99,7 @@
                 <tr><td>Quantidade de presentes na ação</td><td class="value-number">{{ $resumoPublico['presentes'] ?? 0 }}</td></tr>
                 <tr><td>Participantes ligados aos movimentos sociais</td><td class="value-number">{{ $resumoPublico['movimentos'] ?? 0 }}</td></tr>
                 <tr><td>Participantes com vínculo com a prefeitura</td><td class="value-number">{{ $resumoPublico['prefeitura'] ?? 0 }}</td></tr>
+                <tr><td>Participantes com vínculo não informado</td><td class="value-number">{{ $resumoPublico['sem_vinculo'] ?? 0 }}</td></tr>
             </table>
         </div>
 
@@ -106,7 +107,7 @@
         @foreach($camposPerguntas as $campo => $pergunta)
             <div class="qa-item">
                 <div class="qa-question">{{ $pergunta }}</div>
-                <div class="qa-answer">{{ $relatorio->$campo ?: '—' }}</div>
+                <div class="qa-answer">{!! nl2br(e($relatorio->$campo ?: '—')) !!}</div>
             </div>
         @endforeach
 

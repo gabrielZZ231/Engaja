@@ -166,6 +166,7 @@ class TemplateAvaliacaoController extends Controller
             'numero' => 'Numérica',
             'boolean'=> 'Sim/Não',
             'unica'  => 'Resposta única',
+            'multipla' => 'Múltipla escolha',
         ];
 
         return compact('evidencias', 'escalas', 'tiposQuestao');
@@ -198,7 +199,7 @@ class TemplateAvaliacaoController extends Controller
                     'evidencia_id' => ['nullable', 'integer', Rule::exists('evidencias', 'id')],
                     'escala_id'    => ['nullable', 'integer', Rule::exists('escalas', 'id')],
                     'texto'        => ['required', 'string', 'max:1000'],
-                    'tipo'         => ['required', 'string', Rule::in(['texto', 'escala', 'numero', 'boolean', 'unica'])],
+                    'tipo'         => ['required', 'string', Rule::in(['texto', 'escala', 'numero', 'boolean', 'unica', 'multipla'])],
                     'opcoes_resposta' => ['nullable', 'array'],
                     'opcoes_resposta.*' => ['nullable', 'string', 'max:255'],
                     'ordem'        => ['nullable', 'integer', 'min:1', 'max:999'],
@@ -222,8 +223,8 @@ class TemplateAvaliacaoController extends Controller
                     $validator->errors()->add('escala_id', 'Selecione uma escala para questões do tipo "Escala".');
                 }
 
-                if (($questao['tipo'] ?? null) === 'unica' && empty($this->normalizaOpcoesResposta($questao['opcoes_resposta'] ?? []))) {
-                    $validator->errors()->add('opcoes_resposta', 'Informe pelo menos uma opção para questões do tipo "Resposta única".');
+                if (in_array(($questao['tipo'] ?? null), ['unica', 'multipla']) && empty($this->normalizaOpcoesResposta($questao['opcoes_resposta'] ?? []))) {
+                    $validator->errors()->add('opcoes_resposta', 'Informe pelo menos uma opção para questões do tipo "Resposta única/múltipla".');
                 }
 
                 // If question is fixed, evidence selection becomes mandatory
@@ -251,7 +252,7 @@ class TemplateAvaliacaoController extends Controller
                 $dados['escala_id'] = null;
             }
 
-            $dados['opcoes_resposta'] = ($dados['tipo'] ?? null) === 'unica'
+            $dados['opcoes_resposta'] = in_array(($dados['tipo'] ?? null), ['unica', 'multipla'])
                 ? $this->normalizaOpcoesResposta($dados['opcoes_resposta'] ?? [])
                 : null;
 

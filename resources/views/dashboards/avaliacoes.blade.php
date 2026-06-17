@@ -19,21 +19,29 @@
 
   <div class="card shadow-sm border-0 mb-3">
     <div class="card-body">
-      <div class="mb-3">
-        <label class="form-label text-muted small mb-1">Tipo de formulário</label>
-        <div class="btn-group" role="group" aria-label="Tipo de formulário">
-          <input type="radio" class="btn-check js-filter" name="tipo-dashboard" id="tipo-momento" value="momento" checked>
-          <label class="btn btn-outline-secondary" for="tipo-momento">Por momento</label>
+      <div class="mb-3 d-flex justify-content-between align-items-end">
+        <div>
+          <label class="form-label text-muted small mb-1">Tipo de formulário</label>
+          <div class="btn-group" role="group" aria-label="Tipo de formulário">
+            <input type="radio" class="btn-check js-filter" name="tipo-dashboard" id="tipo-momento" value="momento" checked>
+            <label class="btn btn-outline-secondary" for="tipo-momento">Por momento</label>
 
-          <input type="radio" class="btn-check js-filter" name="tipo-dashboard" id="tipo-universal" value="universal">
-          <label class="btn btn-outline-secondary" for="tipo-universal">Universais</label>
+            <input type="radio" class="btn-check js-filter" name="tipo-dashboard" id="tipo-transcricao" value="transcricao">
+            <label class="btn btn-outline-secondary" for="tipo-transcricao">Transcrições</label>
+
+            <input type="radio" class="btn-check js-filter" name="tipo-dashboard" id="tipo-universal" value="universal">
+            <label class="btn btn-outline-secondary" for="tipo-universal">Universais</label>
+          </div>
         </div>
+        <button type="button" id="btn-exportar-pdf" class="btn btn-danger">
+          Gerar PDF
+        </button>
       </div>
       <div class="row g-3 align-items-end">
         <div class="col-lg-3 col-md-6 filter-momento">
-          <label class="form-label text-muted small mb-1">Ação Pedagógica</label>
+         <label class="form-label text-muted small mb-1">Ação Pedagógica (Obrigatório)</label>
           <select class="form-select js-filter" id="f-evento">
-            <option value="">Todos</option>
+            <option value="">-- Selecione uma ação --</option>
             @foreach($eventos as $evento)
             <option value="{{ $evento->id }}">{{ $evento->nome }}</option>
             @endforeach
@@ -42,7 +50,7 @@
         <div class="col-lg-3 col-md-6 filter-universal d-none">
           <label class="form-label text-muted small mb-1">Avaliação universal</label>
           <select class="form-select js-filter" id="f-avaliacao-universal">
-            <option value="">Todas</option>
+            <option value="">-- Selecione uma avaliação --</option>
             @foreach($avaliacoesUniversais as $avaliacaoUniversal)
             <option value="{{ $avaliacaoUniversal->id }}">
               {{ $avaliacaoUniversal->descricao_universal ?: ($avaliacaoUniversal->templateAvaliacao->nome ?? 'Avaliação universal') }}
@@ -53,7 +61,7 @@
         <div class="col-lg-3 col-md-6 filter-momento">
           <label class="form-label text-muted small mb-1">Momento</label>
           <select class="form-select js-filter" id="f-atividade">
-            <option value="">Selecione uma ação pedagógica</option>
+            <option value="">Primeiro selecione a ação pedagógica</option>
             @foreach($atividades as $atividade)
             @php
               $diaFormatado = $atividade->dia ? \Illuminate\Support\Carbon::parse($atividade->dia)->format('d/m') : '';
@@ -85,7 +93,7 @@
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body">
           <p class="text-uppercase small text-muted mb-1">Submissões</p>
-          <div class="h3 fw-bold mb-0" data-total="submissoes">0</div>
+          <div class="h3 fw-bold mb-0" data-total="submissoes">-</div>
           <small class="text-muted">Respostas completas registradas</small>
         </div>
       </div>
@@ -94,7 +102,7 @@
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body">
           <p class="text-uppercase small text-muted mb-1">Questões</p>
-          <div class="h3 fw-bold mb-0" data-total="questoes">0</div>
+          <div class="h3 fw-bold mb-0" data-total="questoes">-</div>
           <small class="text-muted">Com alguma resposta</small>
         </div>
       </div>
@@ -103,7 +111,7 @@
       <div class="card shadow-sm border-0 h-100">
         <div class="card-body">
           <p class="text-uppercase small text-muted mb-1" data-total-label="eventos">Ações Pedagógicas</p>
-          <div class="h3 fw-bold mb-0" data-total="eventos">0</div>
+          <div class="h3 fw-bold mb-0" data-total="eventos">-</div>
           <small class="text-muted" data-total-help="eventos">Com respostas vinculadas</small>
         </div>
       </div>
@@ -123,7 +131,7 @@
     <div class="col-12">
       <div class="d-flex justify-content-between align-items-center mb-2">
         <h2 class="h5 fw-bold mb-0">Distribuição por questão</h2>
-        <span class="badge bg-primary-subtle text-primary">Interativo</span>
+        <span class="badge bg-primary-subtle text-primary" id="badge-pagina" style="display:none!important"></span>
       </div>
       <div class="row g-3" id="cards-questoes">
         <div class="col-12" id="placeholder-card">
@@ -134,6 +142,13 @@
           </div>
         </div>
       </div>
+
+      <nav id="paginacao-questoes" aria-label="Paginação de questões" class="mt-4" style="display:none">
+        <div class="d-flex flex-wrap justify-content-between align-items-center gap-2">
+          <div class="text-muted small" id="paginacao-info"></div>
+          <ul class="pagination mb-0" id="paginacao-lista"></ul>
+        </div>
+      </nav>
     </div>
   </div>
 </div>
@@ -161,6 +176,18 @@
       flex: 0 0 100%;
       max-width: 100%;
     }
+  }
+  #paginacao-questoes .page-link {
+    color: #421944;
+    border-color: #e2d5e8;
+  }
+  #paginacao-questoes .page-item.active .page-link {
+    background-color: #421944;
+    border-color: #421944;
+    color: #fff;
+  }
+  #paginacao-questoes .page-item.disabled .page-link {
+    color: #adb5bd;
   }
   @media (max-width: 576px) {
     #cards-questoes .question-header,
@@ -193,8 +220,12 @@
   if (!container) return;
 
   const endpoint = container.dataset.endpoint;
+  const pdfEndpoint = "{{ route('dashboards.avaliacoes.pdf') }}";
+  const btnExportarPdf = document.getElementById('btn-exportar-pdf');
+
   const filters = {
     tipoMomento: document.getElementById('tipo-momento'),
+    tipoTranscricao: document.getElementById('tipo-transcricao'),
     tipoUniversal: document.getElementById('tipo-universal'),
     evento: document.getElementById('f-evento'),
     atividade: document.getElementById('f-atividade'),
@@ -230,7 +261,9 @@
   const palette = ['#421944', '#008BBC', '#FDB913', '#E62270', '#2EB57D', '#601F69', '#6C345E', '#9602C7', '#A95DB1', '#D9A8E2', '#ECDEEC'];
 
   function currentTipo() {
-    return filters.tipoUniversal?.checked ? 'universal' : 'momento';
+    if (filters.tipoUniversal?.checked) return 'universal';
+    if (filters.tipoTranscricao?.checked) return 'transcricao';
+    return 'momento';
   }
 
   function buildParams() {
@@ -247,6 +280,32 @@
     if (filters.ate.value) params.set('ate', filters.ate.value);
     return params.toString();
   }
+
+    //valida se os filtros obrigatórios foram preenchidos
+    function hasRequiredFilters() {
+        const tipo = currentTipo();
+        if (tipo === 'universal') {
+            return !!filters.avaliacaoUniversal?.value;
+        } else {
+            return !!filters.evento?.value;
+        }
+    }
+
+    //mostra o estado vazio e zera os placares
+    function showEmptyState() {
+        renderTotals({ submissoes: '-', questoes: '-', eventos: '-', ultima: '-' });
+        cardsQuestoes.innerHTML = `
+      <div class="col-12">
+        <div class="card border-0 shadow-sm text-center py-5">
+          <div class="card-body">
+            <h5 class="fw-bold text-muted mb-2">Aguardando filtros</h5>
+            <p class="text-muted mb-0">Selecione uma <strong>Ação Pedagógica</strong> ou <strong>Avaliação Universal</strong> acima para carregar as respostas e gráficos.</p>
+          </div>
+        </div>
+      </div>`;
+        paginacaoNav.style.display = 'none';
+        badgePagina.style.setProperty('display', 'none', 'important');
+    }
 
   function updateModeUi() {
     const tipo = currentTipo();
@@ -283,7 +342,7 @@
     filters.atividade.disabled = !hasEvento;
 
     if (atividadePlaceholder) {
-      atividadePlaceholder.textContent = hasEvento ? 'Todas' : 'Selecione uma ação pedagógica';
+      atividadePlaceholder.textContent = hasEvento ? 'Todas as atividades' : 'Primeiro selecione a ação pedagógica';
     }
 
     let selectedOptionVisible = !filters.atividade.value;
@@ -360,9 +419,9 @@
   }
 
   function renderTotals(totais) {
-    totalsEls.submissoes.textContent = new Intl.NumberFormat('pt-BR').format(totais.submissoes || 0);
-    totalsEls.questoes.textContent = new Intl.NumberFormat('pt-BR').format(totais.questoes || 0);
-    totalsEls.eventos.textContent = new Intl.NumberFormat('pt-BR').format(totais.eventos || 0);
+    totalsEls.submissoes.textContent = totais.submissoes === '-' ? '-' : new Intl.NumberFormat('pt-BR').format(totais.submissoes || 0);
+    totalsEls.questoes.textContent = totais.questoes === '-' ? '-' : new Intl.NumberFormat('pt-BR').format(totais.questoes || 0);
+    totalsEls.eventos.textContent = totais.eventos === '-' ? '-' : new Intl.NumberFormat('pt-BR').format(totais.eventos || 0);
     totalsEls.ultima.textContent = totais.ultima || '-';
   }
 
@@ -384,7 +443,7 @@
       cardsQuestoes.innerHTML = `
         <div class="col-12">
           <div class="card border-0 shadow-sm">
-            <div class="card-body text-muted text-center">Sem respostas para os filtros aplicados.</div>
+            <div class="card-body text-muted text-center">Nenhum dado encontrado para os filtros selecionados.</div>
           </div>
         </div>`;
       return;
@@ -543,17 +602,120 @@
     });
   }
 
-  async function loadData() {
+  const paginacaoNav = document.getElementById('paginacao-questoes');
+  const paginacaoInfo = document.getElementById('paginacao-info');
+  const paginacaoLista = document.getElementById('paginacao-lista');
+  const badgePagina = document.getElementById('badge-pagina');
+
+  let currentPage = 1;
+  let lastMeta = null;
+
+  function renderPagination(meta) {
+    lastMeta = meta;
+    if (!meta || meta.last_page <= 1) {
+      paginacaoNav.style.display = 'none';
+      badgePagina.style.setProperty('display', 'none', 'important');
+      return;
+    }
+
+    paginacaoNav.style.display = '';
+    badgePagina.style.setProperty('display', '', 'important');
+    badgePagina.textContent = `Página ${meta.page} / ${meta.last_page}`;
+
+    const start = (meta.page - 1) * meta.per_page + 1;
+    const end = Math.min(meta.page * meta.per_page, meta.total);
+    paginacaoInfo.textContent = `Mostrando questões ${start}–${end} de ${meta.total}`;
+
+    paginacaoLista.innerHTML = '';
+
+    const prevLi = document.createElement('li');
+    prevLi.className = `page-item${meta.page <= 1 ? ' disabled' : ''}`;
+    prevLi.innerHTML = `<button class="page-link" ${meta.page <= 1 ? 'disabled' : ''}>&lsaquo; Anterior</button>`;
+    prevLi.querySelector('button').addEventListener('click', () => {
+      if (meta.page > 1) loadData(meta.page - 1);
+    });
+    paginacaoLista.appendChild(prevLi);
+
+    const maxButtons = 7;
+    const half = Math.floor(maxButtons / 2);
+    let pageStart = Math.max(1, meta.page - half);
+    let pageEnd = Math.min(meta.last_page, pageStart + maxButtons - 1);
+    if (pageEnd - pageStart < maxButtons - 1) {
+      pageStart = Math.max(1, pageEnd - maxButtons + 1);
+    }
+
+    if (pageStart > 1) {
+      appendPageBtn(1);
+      if (pageStart > 2) appendEllipsis();
+    }
+    for (let p = pageStart; p <= pageEnd; p++) {
+      appendPageBtn(p);
+    }
+    if (pageEnd < meta.last_page) {
+      if (pageEnd < meta.last_page - 1) appendEllipsis();
+      appendPageBtn(meta.last_page);
+    }
+
+    const nextLi = document.createElement('li');
+    nextLi.className = `page-item${meta.page >= meta.last_page ? ' disabled' : ''}`;
+    nextLi.innerHTML = `<button class="page-link" ${meta.page >= meta.last_page ? 'disabled' : ''}>Próximo &rsaquo;</button>`;
+    nextLi.querySelector('button').addEventListener('click', () => {
+      if (meta.page < meta.last_page) loadData(meta.page + 1);
+    });
+    paginacaoLista.appendChild(nextLi);
+  }
+
+  function appendPageBtn(p) {
+    const li = document.createElement('li');
+    li.className = `page-item${p === lastMeta?.page ? ' active' : ''}`;
+    const btn = document.createElement('button');
+    btn.className = 'page-link';
+    btn.textContent = p;
+    if (p === lastMeta?.page) btn.setAttribute('aria-current', 'page');
+    btn.addEventListener('click', () => loadData(p));
+    li.appendChild(btn);
+    paginacaoLista.appendChild(li);
+  }
+
+  function appendEllipsis() {
+    const li = document.createElement('li');
+    li.className = 'page-item disabled';
+    li.innerHTML = '<span class="page-link">&hellip;</span>';
+    paginacaoLista.appendChild(li);
+  }
+
+  async function loadData(page = 1) {
+    if (!hasRequiredFilters()) {
+       showEmptyState();
+       return;
+    }
+
+    currentPage = page;
     setLoading(true);
     try {
-      const url = `${endpoint}?${buildParams()}`;
+      const url = `${endpoint}?${buildParams()}&page=${page}&per_page=50`;
       const response = await fetch(url, { headers: { Accept: 'application/json' } });
       const payload = await response.json();
 
       renderTotals(payload.totais || {});
       renderCharts(payload.perguntas || []);
+      renderPagination(payload.meta || null);
+
+      if (payload.filtros) {
+        if (!filters.de.value && payload.filtros.de) {
+          filters.de.value = payload.filtros.de.split(' ')[0];
+        }
+        if (!filters.ate.value && payload.filtros.ate) {
+          filters.ate.value = payload.filtros.ate.split(' ')[0];
+        }
+      }
+
+      if (page > 1) {
+        cardsQuestoes.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
     } catch (error) {
-      cardsQuestoes.innerHTML = '<div class=\"card border-0 shadow-sm\"><div class=\"card-body text-danger\">Erro ao carregar dados.</div></div>';
+      cardsQuestoes.innerHTML = '<div class=\"card border-0 shadow-sm\"><div class=\"card-body text-danger\">Erro ao carregar dados. Verifique sua conexão.</div></div>';
+      paginacaoNav.style.display = 'none';
     }
   }
 
@@ -565,14 +727,38 @@
       if (input === filters.tipoMomento || input === filters.tipoUniversal) {
         updateModeUi();
       }
-      loadData();
+      loadData(1);
     });
   });
   filters.evento?.addEventListener('change', () => {
     updateAtividadeFilter();
-    loadData();
+    loadData(1);
   });
-  loadData();
+  
+  //define a interface e chama o estado vazio
+  updateModeUi();
+  showEmptyState();
+
+  if (btnExportarPdf) {
+    btnExportarPdf.addEventListener('click', () => {
+      const submissoesRaw = totalsEls.submissoes.textContent.replace(/[^\d]/g, '');
+      const submissoes = parseInt(submissoesRaw) || 0;
+
+      if (submissoes > 500) {
+        const confirmMsg = `O relatório contém ${submissoes} submissões. ` +
+                           `Gerar um PDF com muitos dados pode levar algum tempo e o arquivo pode ficar pesado. ` +
+                           `Deseja continuar?`;
+        if (!confirm(confirmMsg)) {
+          return;
+        }
+      }
+
+      const params = buildParams();
+      window.open(`${pdfEndpoint}?${params}`, '_blank');
+    });
+  }
+
+  loadData(1);
 })();
 </script>
 @endsection

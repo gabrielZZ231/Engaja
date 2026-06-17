@@ -3,12 +3,15 @@
 <head>
   <meta charset="UTF-8">
   <style>
+
+    @import url('https://fonts.googleapis.com/css2?family=Lato:ital,wght@0,400;0,700;1,400&family=Montserrat:ital,wght@0,400;0,600;0,700;1,400&family=Open+Sans:ital,wght@0,400;0,700;1,400&family=Playfair+Display:ital,wght@0,400;0,700;1,400&family=Roboto:ital,wght@0,400;0,700;1,400&display=swap');
+
     @page { size: A4 landscape; margin: 0; }
-    body { margin: 0; padding: 0; font-family: Arial, sans-serif; }
+    html, body { margin: 0; padding: 0; width: 297mm; height: 210mm; font-family: Arial, sans-serif; }
     .page {
       position: relative;
-      width: 100%;
-      height: 100%;
+      width: 297mm;
+      height: 210mm;
       page-break-after: always;
       overflow: hidden;
     }
@@ -26,9 +29,6 @@
       font-size: 20px;
       line-height: 1.4;
       white-space: normal;
-      text-align: justify;
-      text-align-last: left;
-      text-justify: inter-word;
       margin: 0;
       padding: 0;
     }
@@ -43,8 +43,8 @@
     $layoutVerso  = $modelo->layout_verso ?? [];
     $textoFrente = trim($certificado->texto_frente ?? '');
     $textoVerso  = trim($certificado->texto_verso ?? '');
-    $dataEmissao = ($certificado->created_at ?? now())->locale('pt_BR')->translatedFormat('j \d\e F \d\e Y');
-    $textoDataEmissao = "São Paulo, {$dataEmissao}.";
+    $dataEmissaoPadrao = ($certificado->created_at ?? now())->locale('pt_BR')->translatedFormat('j \d\e F \d\e Y');
+    $textoDataEmissao = $layoutFrente['date_text'] ?? "São Paulo, {$dataEmissaoPadrao}.";
     $qrLink = $certificado->codigo_validacao ? route('certificados.validacao', $certificado->codigo_validacao) : null;
     $qrBase64 = null;
     $qrColorHex = $layoutVerso['qr_color'] ?? '#811283';
@@ -56,7 +56,8 @@
         hexdec(substr($qrColorHex, 4, 2)),
     ];
     if ($qrLink && class_exists(\SimpleSoftwareIO\QrCode\Facades\QrCode::class)) {
-        $qrPng = \SimpleSoftwareIO\QrCode\Facades\QrCode::format('png')
+        $qrFormat = env('QR_CODE_FORMAT', 'png');
+        $qrData = \SimpleSoftwareIO\QrCode\Facades\QrCode::format($qrFormat)
             ->style('round')
             ->eye('circle')
             ->eyeColor(0, $qrRGB[0], $qrRGB[1], $qrRGB[2], $qrRGB[0], $qrRGB[1], $qrRGB[2])
@@ -67,7 +68,8 @@
             ->size(280)
             ->errorCorrection('H')
             ->generate($qrLink);
-        $qrBase64 = 'data:image/png;base64,'.base64_encode($qrPng);
+        $qrMime = $qrFormat === 'svg' ? 'image/svg+xml' : 'image/'.$qrFormat;
+        $qrBase64 = "data:{$qrMime};base64,".base64_encode($qrData);
     }
     $frenteInfo = ($frenteFile && file_exists($frenteFile)) ? @getimagesize($frenteFile) : null;
     $versoInfo  = ($versoFile && file_exists($versoFile)) ? @getimagesize($versoFile) : null;
@@ -190,8 +192,8 @@
       $imgH = max(1, (float)($frenteInfo[1] ?? 1100));
       $cw = max(1, (float)($layoutFrente['canvas_w'] ?? $imgW));
       $ch = max(1, (float)($layoutFrente['canvas_h'] ?? $imgH));
-      $pageW = 842.0;
-      $pageH = 595.0;
+      $pageW = 1122.52;
+      $pageH = 793.70;
       $scale = min($pageW / $imgW, $pageH / $imgH);
       $renderW = $imgW * $scale;
       $renderH = $imgH * $scale;
@@ -208,6 +210,7 @@
       $fw = $layoutFrente['font_weight'] ?? 'normal';
       $fst = $layoutFrente['font_style'] ?? 'normal';
       $align = $layoutFrente['align'] ?? 'left';
+      $colorFrente = $layoutFrente['text_color'] ?? '#111111';
       $boxW = $w > 0 ? $w : $renderW;
       $boxH = $h > 0 ? $h : null;
       $styleFront = [
@@ -218,7 +221,15 @@
         "font-weight:{$fw}",
         "font-style:{$fst}",
         "text-align:{$align}",
+        "color:{$colorFrente}",
       ];
+      if ($align === 'justify') {
+          $styleFront[] = "text-align-last:left";
+          $styleFront[] = "text-justify:inter-word";
+      } else {
+          $styleFront[] = "text-align-last:{$align}";
+      }
+
       if ($boxW) $styleFront[] = "width:{$boxW}px";
       if ($boxH) $styleFront[] = "height:{$boxH}px";
       $dateX = $offsetX + ($layoutFrente['date_x'] ?? 0) * $scaleX;
@@ -239,7 +250,14 @@
         "font-style:{$dateFst}",
         "text-align:{$dateAlign}",
         "width:{$dateW}px",
+        "color:{$colorFrente}",
       ];
+      if ($dateAlign === 'justify') {
+          $styleDateFront[] = "text-align-last:left";
+          $styleDateFront[] = "text-justify:inter-word";
+      } else {
+          $styleDateFront[] = "text-align-last:{$dateAlign}";
+      }
       if ($dateH > 0) $styleDateFront[] = "height:{$dateH}px";
     @endphp
     <img src="{{ $frenteUrl }}" class="bg" alt="Frente" style="width:{{ $renderW }}px; height:{{ $renderH }}px; left:{{ $offsetX }}px; top:{{ $offsetY }}px;">
@@ -256,8 +274,8 @@
       $imgH = max(1, (float)($versoInfo[1] ?? 1100));
       $cw = max(1, (float)($layoutVerso['canvas_w'] ?? $imgW));
       $ch = max(1, (float)($layoutVerso['canvas_h'] ?? $imgH));
-      $pageW = 842.0;
-      $pageH = 595.0;
+      $pageW = 1122.52;
+      $pageH = 793.70;
       $scale = min($pageW / $imgW, $pageH / $imgH);
       $renderW = $imgW * $scale;
       $renderH = $imgH * $scale;
@@ -274,6 +292,7 @@
       $fw = $layoutVerso['font_weight'] ?? 'normal';
       $fst = $layoutVerso['font_style'] ?? 'normal';
       $align = $layoutVerso['align'] ?? 'left';
+      $colorVerso = $layoutVerso['text_color'] ?? '#111111';
       $boxW = $w > 0 ? $w : $renderW;
       $boxH = $h > 0 ? $h : null;
       $styleBack = [
@@ -284,7 +303,15 @@
         "font-weight:{$fw}",
         "font-style:{$fst}",
         "text-align:{$align}",
+        "color:{$colorVerso}",
       ];
+      if ($align === 'justify') {
+          $styleBack[] = "text-align-last:left";
+          $styleBack[] = "text-justify:inter-word";
+      } else {
+          $styleBack[] = "text-align-last:{$align}";
+      }
+
       if ($boxW) $styleBack[] = "width:{$boxW}px";
       if ($boxH) $styleBack[] = "height:{$boxH}px";
       $qrX = $offsetX + (($layoutVerso['qr_x'] ?? null) !== null ? $layoutVerso['qr_x'] * $scaleX : 0);

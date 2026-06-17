@@ -3,9 +3,10 @@
 @section('content')
 @php
   $isUniversal = $isUniversal ?? false;
+  $isTranscricao = ($isTranscricao ?? false) || request('transcricao');
   $tituloAvaliacao = $isUniversal
       ? ($avaliacao->descricao_universal ?: ($avaliacao->templateAvaliacao->nome ?? 'Avaliação universal'))
-      : ($atividade?->descricao ?? $avaliacao->templateAvaliacao->nome ?? 'Avaliação universal');
+      : ($atividade?->descricao ?? $avaliacao->templateAvaliacao->nome ?? 'Avaliação');
 @endphp
 <div class="row justify-content-center">
   <div class="col-xl-8">
@@ -14,7 +15,7 @@
         Avaliação - {{ $tituloAvaliacao }}
       </h1>
       <p class="text-muted mb-0" style="text-align: justify">
-        Convidamos você a responder esta avaliação, expressando as suas opiniões, críticas e sugestões. 
+        Convidamos você a responder esta avaliação, expressando as suas opiniões, críticas e sugestões.
         Esta coleta de dados segue as diretrizes da LGPD. Suas respostas contribuirão para o aprimoramento do nosso trabalho.
       </p>
     </div>
@@ -34,11 +35,15 @@
           $formBloqueado = $jaRespondeu ?? false;
           $formularioFechado = $formularioFechado ?? false;
           $somenteVisualizacao = $somenteVisualizacao ?? false;
+          $exigePresenca = ! $isUniversal && ! $isTranscricao;
         @endphp
 
         <div class="mb-4">
           @if($isUniversal)
             <p class="mb-0"><strong>Avaliação universal:</strong> {{ $avaliacao->descricao_universal ?: ($avaliacao->templateAvaliacao->nome ?? '-') }}</p>
+          @elseif($isTranscricao)
+            <p class="mb-0"><strong>Transcrição:</strong> {{ $avaliacao->descricao_universal ?: ($avaliacao->templateAvaliacao->nome ?? '-') }}</p>
+            <p class="mb-0"><strong>Momento:</strong> {{ $atividade?->descricao ?? '-' }}</p>
           @else
             <p class="mb-0"><strong>Ação pedagógica:</strong> {{ $eventoNome ?? '-' }}</p>
             @if($avaliacao->descricao_universal)
@@ -47,7 +52,7 @@
           @endif
         </div>
 
-        @if(!$isUniversal && empty($token))
+        @if($exigePresenca && empty($token))
           <div class="alert alert-warning">Confirme sua presença no momento para gerar o link pessoal desta avaliação.</div>
         @endif
 
@@ -64,6 +69,9 @@
         <form method="POST" action="{{ route('avaliacao.formulario.responder', $avaliacao) }}">
           @csrf
           <input type="hidden" name="token" value="{{ old('token', $token) }}">
+          @if(request('transcricao') || ($isTranscricao ?? false))
+            <input type="hidden" name="transcricao" value="1">
+          @endif
 
           <fieldset @disabled($formBloqueado || $somenteVisualizacao)>
             @php
@@ -156,6 +164,29 @@
                                     <p class="text-muted small">Opções não configuradas.</p>
                                   @endif
                                   @break
+
+                                @case('multipla')
+                                    @php
+                                        //transforma o valor num array válido
+                                        $respostasSelecionadas = is_array($valorAtual)
+                                            ? $valorAtual
+                                            : (json_decode($valorAtual, true) ?? []);
+                                    @endphp
+                                    <div class="d-flex flex-column gap-2 mt-2">
+                                        @foreach($questao->opcoes_resposta as $index => $opcao)
+                                            <div class="form-check">
+                                                <input class="form-check-input" type="checkbox"
+                                                       name="respostas[{{ $questao->id }}][]"
+                                                       value="{{ $opcao }}"
+                                                       id="q_{{ $questao->id }}_op_{{ $index }}"
+                                                    {{ in_array($opcao, $respostasSelecionadas) ? 'checked' : '' }}>
+                                                <label class="form-check-label" for="q_{{ $questao->id }}_op_{{ $index }}">
+                                                    {{ $opcao }}
+                                                </label>
+                                            </div>
+                                        @endforeach
+                                    </div>
+                                @break
 
                                 @default
                                   <textarea name="respostas[{{ $questao->id }}]" class="form-control" rows="3" placeholder="Compartilhe sua percepção">{{ $valorAtual }}</textarea>

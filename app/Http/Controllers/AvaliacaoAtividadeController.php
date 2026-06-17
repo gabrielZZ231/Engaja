@@ -4,29 +4,48 @@ namespace App\Http\Controllers;
 
 use App\Models\Atividade;
 use App\Models\AvaliacaoAtividade;
+use App\Models\Evento;
+use App\Models\Municipio;
 use App\Models\Participante;
-use Barryvdh\DomPDF\Facade\Pdf;
 use Illuminate\Foundation\Auth\Access\AuthorizesRequests;
 use Illuminate\Http\Request;
+use Illuminate\Support\Str;
+use Spatie\LaravelPdf\Facades\Pdf;
 
 class AvaliacaoAtividadeController extends Controller
 {
     use AuthorizesRequests;
 
     private const REPORT_EDIT_ROLES = ['administrador', 'gerente'];
+
     private const REPORT_QUESTION_FIELDS = [
-        'avaliacao_logistica' => 'Quais melhorias você sugere para a logística do evento?',
-        'avaliacao_acolhimento_sme' => 'Como você avalia o acolhimento e apoio da SME?',
-        'avaliacao_atuacao_equipe' => 'Como você avalia a atuação da equipe do IPF?',
-        'avaliacao_planejamento' => 'O planejamento desta ação foi suficiente e adequado?',
-        'avaliacao_recursos_materiais' => 'Os recursos materiais atenderam aos objetivos da ação?',
-        'avaliacao_links_presenca' => 'Os links e QR codes funcionaram corretamente?',
-        'avaliacao_destaques' => 'Que destaques sobre esta ação você considera importantes?',
+        'questao_unificada' => 'Avaliação Geral do Momento (Logística, Acolhimento, Planejamento, Atuação da equipe, Recursos e Destaques).',
     ];
+
+    private function parseIntArray(Request $request, string $key): array
+    {
+        return collect($request->input($key, []))
+            ->map(fn ($value) => (int) $value)
+            ->filter(fn ($value) => $value > 0)
+            ->unique()
+            ->values()
+            ->all();
+    }
 
     public function index(Request $request)
     {
-        $query = AvaliacaoAtividade::with(['atividade.evento', 'atividade.municipios', 'user'])
+        $acaoIds = $this->parseIntArray($request, 'acao_ids');
+        $municipioIds = $this->parseIntArray($request, 'municipio_ids');
+        $momentoIds = empty($acaoIds)
+            ? []
+            : Atividade::query()
+                ->whereIn('evento_id', $acaoIds)
+                ->whereIn('id', $this->parseIntArray($request, 'momento_ids'))
+                ->pluck('id')
+                ->all();
+
+        $query = AvaliacaoAtividade::query()
+            ->with(['atividade.evento', 'atividade.municipios', 'user'])
             ->whereHas('atividade');
 
         $user = $request->user();
@@ -35,22 +54,38 @@ class AvaliacaoAtividadeController extends Controller
             $query->where('user_id', $user->id);
         }
 
-        $search = trim((string) $request->query('search', ''));
-        if ($search !== '') {
-            $query->where(function ($q) use ($search) {
-                $q->whereHas('atividade', fn($a) => $a->where('descricao', 'like', "%{$search}%"))
-                  ->orWhereHas('atividade.evento', fn($e) => $e->where('nome', 'like', "%{$search}%"))
-                  ->orWhere('nome_educador', 'like', "%{$search}%");
+        $query->when(! empty($acaoIds), fn ($q) => $q->whereHas('atividade', fn ($a) => $a->whereIn('evento_id', $acaoIds)));
+        $query->when(! empty($momentoIds), fn ($q) => $q->whereIn('atividade_id', $momentoIds));
+        $query->when(! empty($municipioIds), function ($q) use ($municipioIds) {
+            $q->whereHas('atividade', function ($a) use ($municipioIds) {
+                $a->whereIn('municipio_id', $municipioIds)
+                    ->orWhereHas('municipios', fn ($m) => $m->whereIn('municipios.id', $municipioIds));
             });
-        }
+        });
+
+        $atividadesDisponiveis = Atividade::query()
+            ->with('evento')
+            ->whereNotNull('evento_id')
+            ->orderBy('descricao')
+            ->get(['id', 'descricao', 'dia', 'evento_id', 'municipio_id']);
+
+        $acoesDisponiveis = Evento::query()
+            ->whereIn('id', $atividadesDisponiveis->pluck('evento_id')->filter()->unique()->values())
+            ->orderBy('nome')
+            ->get(['id', 'nome']);
+
+        $municipiosDisponiveis = Municipio::query()
+            ->with('estado:id,sigla')
+            ->orderBy('nome')
+            ->get();
 
         $relatorios = $query->orderByDesc('updated_at')->get();
 
         $acoesAgrupadas = $relatorios
-            ->groupBy(fn(AvaliacaoAtividade $relatorio) => $relatorio->atividade?->evento?->nome ?? 'Ação pedagógica não informada')
+            ->groupBy(fn (AvaliacaoAtividade $relatorio) => $relatorio->atividade?->evento?->nome ?? 'Ação pedagógica não informada')
             ->map(function ($relatoriosDaAcao) {
                 return $relatoriosDaAcao
-                    ->groupBy(fn(AvaliacaoAtividade $relatorio) => $relatorio->atividade_id)
+                    ->groupBy(fn (AvaliacaoAtividade $relatorio) => $relatorio->atividade_id)
                     ->map(function ($relatoriosDoMomento) {
                         return [
                             'atividade' => $relatoriosDoMomento->first()->atividade,
@@ -62,24 +97,26 @@ class AvaliacaoAtividadeController extends Controller
 
         $camposPerguntas = self::REPORT_QUESTION_FIELDS;
 
-        return view('avaliacao-atividade.index', compact('acoesAgrupadas', 'camposPerguntas', 'search'));
+        return view('avaliacao-atividade.index', compact(
+            'acoesAgrupadas',
+            'camposPerguntas',
+            'acoesDisponiveis',
+            'atividadesDisponiveis',
+            'municipiosDisponiveis',
+            'acaoIds',
+            'momentoIds'
+        ));
     }
 
     private function rules(): array
     {
         return [
-            'nome_educador'                        => ['nullable', 'string', 'max:255'],
-            'qtd_participantes_prefeitura'         => ['nullable', 'integer', 'min:0', 'max:9999'],
+            'nome_educador' => ['nullable', 'string', 'max:255'],
+            'qtd_participantes_prefeitura' => ['nullable', 'integer', 'min:0', 'max:9999'],
             'qtd_participantes_movimentos_sociais' => ['nullable', 'integer', 'min:0', 'max:9999'],
-            'avaliacao_logistica'                  => ['nullable', 'string'],
-            'avaliacao_acolhimento_sme'            => ['nullable', 'string'],
-            'avaliacao_recursos_materiais'         => ['nullable', 'string'],
-            'avaliacao_planejamento'               => ['nullable', 'string'],
-            'avaliacao_links_presenca'             => ['nullable', 'string'],
-            'avaliacao_destaques'                  => ['nullable', 'string'],
-            'avaliacao_atuacao_equipe'             => ['nullable', 'string'],
-            'checklist_pos_acao'                   => ['nullable', 'array'],
-            'checklist_pos_acao.*'                 => ['string', 'max:100'],
+            'questao_unificada' => ['nullable', 'string'],
+            'checklist_pos_acao' => ['nullable', 'array'],
+            'checklist_pos_acao.*' => ['string', 'max:100'],
         ];
     }
 
@@ -88,19 +125,26 @@ class AvaliacaoAtividadeController extends Controller
         $inscricoesQuery = $atividade->inscricoes()->whereNull('deleted_at');
 
         return [
-            'prevista'   => $atividade->publico_esperado ?? 0,
-            'inscritos'  => (clone $inscricoesQuery)->distinct('participante_id')->count('participante_id'),
-            'presentes'  => $atividade->presencas()
+            'prevista' => $atividade->publico_esperado ?? 0,
+            'inscritos' => (clone $inscricoesQuery)->distinct('participante_id')->count('participante_id'),
+            'presentes' => $atividade->presencas()
                 ->where('status', 'presente')
                 ->whereNull('deleted_at')
                 ->distinct('inscricao_id')
                 ->count('inscricao_id'),
             'movimentos' => (clone $inscricoesQuery)
-                ->whereHas('participante', fn($q) => $q->where('tag', Participante::TAG_MOVIMENTO_SOCIAL))
+                ->whereHas('participante', fn ($q) => $q->where('tag', Participante::TAG_MOVIMENTO_SOCIAL))
                 ->distinct('participante_id')
                 ->count('participante_id'),
             'prefeitura' => (clone $inscricoesQuery)
-                ->whereHas('participante', fn($q) => $q->where('tag', Participante::TAG_REDE_ENSINO))
+                ->whereHas('participante', fn ($q) => $q->where('tag', Participante::TAG_REDE_ENSINO))
+                ->distinct('participante_id')
+                ->count('participante_id'),
+            'sem_vinculo' => (clone $inscricoesQuery)
+                ->whereHas('participante', function ($q) {
+                    $q->whereNull('tag')
+                        ->orWhere('tag', '');
+                })
                 ->distinct('participante_id')
                 ->count('participante_id'),
         ];
@@ -201,6 +245,7 @@ class AvaliacaoAtividadeController extends Controller
         return view('avaliacao-atividade.show', [
             'relatorio' => $relatorio,
             'resumoPublico' => $this->buildResumoPublicoForRelatorio($relatorio),
+            'camposPerguntas' => self::REPORT_QUESTION_FIELDS,
         ]);
     }
 
@@ -210,14 +255,15 @@ class AvaliacaoAtividadeController extends Controller
         $this->loadRelatorioRelations($relatorio);
 
         $resumoPublico = $this->buildResumoPublicoForRelatorio($relatorio);
-        $pdf = Pdf::loadView('avaliacao-atividade.pdf', [
+
+        return Pdf::view('avaliacao-atividade.pdf', [
             'relatorio' => $relatorio,
             'resumoPublico' => $resumoPublico,
             'camposPerguntas' => self::REPORT_QUESTION_FIELDS,
-        ]);
-        $pdf->setPaper('a4', 'portrait');
-
-        return $pdf->download('relatorio-acao-' . $relatorio->id . '.pdf');
+        ])
+            ->format('a4')
+            ->withAlfaEjaBrand()
+            ->download('relatorio-acao-'.$relatorio->id.'.pdf');
     }
 
     public function downloadOwn(Atividade $atividade)
@@ -225,7 +271,7 @@ class AvaliacaoAtividadeController extends Controller
         $this->authorizeReport($atividade);
 
         $relatorio = $this->getUserReport($atividade);
-        abort_if(!$relatorio, 404, 'Relatório não encontrado para este momento.');
+        abort_if(! $relatorio, 404, 'Relatório não encontrado para este momento.');
 
         return $this->download($relatorio);
     }
@@ -277,18 +323,18 @@ class AvaliacaoAtividadeController extends Controller
             ];
         })->values();
 
-        $pdf = Pdf::loadView('avaliacao-atividade.pdf-consolidado', [
+        $nomeArquivo = 'relatorios-consolidado-'.Str::slug($atividade->descricao ?? 'momento').'.pdf';
+
+        return Pdf::view('avaliacao-atividade.pdf-consolidado', [
             'atividade' => $atividade,
             'relatorios' => $relatorios,
             'resumoPublico' => $resumoPublico,
             'camposPerguntas' => self::REPORT_QUESTION_FIELDS,
             'respostasPorPergunta' => $respostasPorPergunta,
-        ]);
-        $pdf->setPaper('a4', 'portrait');
-
-        $nomeArquivo = 'relatorios-consolidado-' . \Illuminate\Support\Str::slug($atividade->descricao ?? 'momento') . '.pdf';
-
-        return $pdf->download($nomeArquivo);
+        ])
+            ->format('a4')
+            ->withAlfaEjaBrand()
+            ->download($nomeArquivo);
     }
 
     private function authorizeRelatorio(AvaliacaoAtividade $relatorio): void
@@ -306,6 +352,7 @@ class AvaliacaoAtividadeController extends Controller
 
         if ($relatorio->atividade) {
             $relatorio->load(['atividade.evento', 'atividade.municipios']);
+
             return;
         }
 
@@ -334,6 +381,7 @@ class AvaliacaoAtividadeController extends Controller
             'presentes' => 0,
             'movimentos' => $relatorio->qtd_participantes_movimentos_sociais ?? 0,
             'prefeitura' => $relatorio->qtd_participantes_prefeitura ?? 0,
+            'sem_vinculo' => 0,
         ];
     }
 }

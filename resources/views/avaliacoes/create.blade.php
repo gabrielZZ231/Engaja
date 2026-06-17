@@ -3,12 +3,19 @@
 @section('content')
 @php
   $universal = $universal ?? false;
+  $transcricao = $transcricao ?? false;
   $formAction = $formAction ?? route('avaliacoes.store');
   $cancelUrl = $cancelUrl ?? route('avaliacoes.index');
 @endphp
 <div class="row justify-content-center">
   <div class="col-xl-10">
-    <h1 class="h3 fw-bold text-engaja mb-4">{{ $universal ? 'Nova avaliação universal' : 'Nova avaliação' }}</h1>
+    <h1 class="h3 fw-bold text-engaja mb-4">
+      @if($universal)
+        Nova avaliação universal
+      @else
+        Nova avaliação
+      @endif
+    </h1>
 
     <div class="card shadow-sm mb-4">
       <div class="card-body">
@@ -62,7 +69,7 @@
               @enderror
             </div>
 
-            @unless($universal)
+            @if(!$universal)
             <div class="col-md-6 d-flex align-items-center">
               <div class="form-check mt-4">
                 <input class="form-check-input" type="checkbox" value="1" id="anonima" name="anonima"
@@ -75,9 +82,11 @@
             </div>
             @else
             <div class="col-md-6 d-flex align-items-center">
-              <div class="form-text mt-4">Avaliações universais são sempre anônimas e não ficam vinculadas a um momento.</div>
+              <div class="form-text mt-4">
+                Avaliações universais são sempre anônimas e não ficam vinculadas a um momento.
+              </div>
             </div>
-            @endunless
+            @endif
           </div>
 
           <div class="mt-4">

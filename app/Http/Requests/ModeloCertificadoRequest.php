@@ -28,6 +28,7 @@ class ModeloCertificadoRequest extends FormRequest
             'imagem_frente' => ['nullable', 'image', 'max:5120'],
             'imagem_verso'  => ['nullable', 'image', 'max:5120'],
             'texto_frente'  => ['nullable', 'string'],
+            'layout_frente.date_text' => ['nullable', 'string'],
             'texto_verso'   => ['nullable', 'string'],
             'layout_frente' => ['nullable', 'array'],
             'layout_frente.x' => ['nullable', 'numeric'],
@@ -72,6 +73,8 @@ class ModeloCertificadoRequest extends FormRequest
             'layout_verso.qr_y'        => ['nullable','numeric'],
             'layout_verso.qr_size'     => ['nullable','numeric'],
             'layout_verso.qr_color'    => ['nullable','string','max:20'],
+            'layout_frente.text_color' => ['nullable', 'string', 'max:7'],
+            'layout_verso.text_color'  => ['nullable', 'string', 'max:7'],
         ];
     }
 

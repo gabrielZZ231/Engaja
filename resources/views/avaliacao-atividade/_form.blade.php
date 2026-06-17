@@ -82,6 +82,10 @@
                         <th class="bg-light">Participantes com vínculo com a Prefeitura</th>
                         <td class="text-center fw-semibold">{{ $resumoPublico['prefeitura'] ?? '—' }}</td>
                     </tr>
+                    <tr>
+                        <th class="bg-light">Participantes com vínculo não informado</th>
+                        <td class="text-center fw-semibold">{{ $resumoPublico['sem_vinculo'] ?? '—' }}</td>
+                    </tr>
                 </tbody>
             </table>
         </div>
@@ -94,100 +98,19 @@
 
     <div class="col-12"><hr class="my-0"></div>
 
-    {{-- ── 3. Avaliação da Logística ──────────────────────────────── --}}
+    {{-- ── 3. Avaliação Geral da Atividade ────────────────────────── --}}
     <div class="col-12">
-        <label class="form-label fw-semibold">Avaliação da Logística</label>
-        <div class="form-text mb-2">
-            Pense nos seguintes pontos: O local era adequado? (espaço, conforto, iluminação, som); Os materiais e equipamentos funcionaram bem? Como foi transporte, alimentação e organização geral? Houve problemas? Como foram resolvidos? A logística ajudou ou atrapalhou a ação?
+        <label class="form-label fw-semibold">Avaliação Geral do Momento (Acolhimento, Atuação da equipe, Destaques, Logística,  Planejamento e  Recursos).</label>
+        <div class="form-text mb-3 fw-semibold">
+            Olá! Utilize o campo abaixo para compartilhar o seu relatório sobre essa ação, destacando as informações que nos ajudem a avaliar a qualidade e o impacto dela. É fundamental que traga o máximo de detalhes possível, podendo se valer, para isso, dos aspectos listados a seguir:
         </div>
-        <textarea name="avaliacao_logistica" rows="4"
-            class="form-control @error('avaliacao_logistica') is-invalid @enderror"
-            placeholder="Sua avaliação...">{{ old('avaliacao_logistica', $avaliacao->avaliacao_logistica) }}</textarea>
-        @error('avaliacao_logistica')<div class="invalid-feedback">{{ $message }}</div>@enderror
-    </div>
-
-    {{-- ── 4. Avaliação do acolhimento e apoio da SME ─────────────── --}}
-    <div class="col-12">
-        <label class="form-label fw-semibold">Avaliação do acolhimento e apoio da SME</label>
-        <div class="form-text mb-2">
-            Reflita sobre: A SME ajudou na organização e mobilização? Esteve presente nos momentos importantes? Foi ágil para resolver problemas? Houve diálogo e parceria com a equipe? Avalie o nível de compromisso da SME com a ação.
+        <div class="form-text mb-4" style="text-align: justify">
+            <strong>a) Planejamento desta ação</strong> - O planejamento fez sentido para esse município? Dialogou com a realidade local (Leitura do Mundo)? As atividades foram adequadas ao público? O tempo foi suficiente? Foi possível adaptar quando necessário? Considerar nesta sua análise as situações desafiadoras da Leitura do Mundo, a Matriz de Aprendizagens e os ODS associados a essa ação; <strong>b) Destaques importantes</strong> - Momentos marcantes do encontro; Reações dos participantes; Aprendizagens percebidas; Falas ou situações significativas; Algo inesperado que vale registrar; <strong>c) Acolhimento e apoio da SME</strong> - A SME ajudou na organização e mobilização? Esteve presente nos momentos importantes? Foi ágil para resolver problemas? Houve diálogo e parceria com a equipe? Avalie o nível de compromisso da SME com a ação; <strong>d) Atuação da Equipe do IPF</strong> - A equipe foi acolhedora e respeitosa? Houve diálogo e escuta dos participantes? A condução foi clara e bem organizada? A equipe conseguiu lidar bem com imprevistos? Demonstrou sensibilidade ao contexto local? Analise se a prática e conduta da equipe refletiu os princípios institucionais do IPF; <strong>e) Os recursos materiais utilizados</strong> - Os materiais ajudaram na aprendizagem? Foram adequados ao público? Foram suficientes? Foram bem utilizados durante a ação? Os participantes conseguiram acessar os QR Codes? Houve problemas de internet? A adesão foi boa? Foi fácil orientar o uso? Indique se a estratégia digital funcionou no território; <strong>f) Logística</strong> - O local era adequado? (espaço, conforto, iluminação, som); Os materiais e equipamentos funcionaram bem? Como foi transporte, alimentação e organização geral? Houve problemas? Como foram resolvidos? A logística ajudou ou atrapalhou a ação?
         </div>
-        <textarea name="avaliacao_acolhimento_sme" rows="4"
-            class="form-control @error('avaliacao_acolhimento_sme') is-invalid @enderror"
-            placeholder="Sua avaliação...">{{ old('avaliacao_acolhimento_sme', $avaliacao->avaliacao_acolhimento_sme) }}</textarea>
-        @error('avaliacao_acolhimento_sme')<div class="invalid-feedback">{{ $message }}</div>@enderror
-    </div>
-
-    {{-- ── 5. Atuação da Equipe do IPF ───────────────────────────── --}}
-    <div class="col-12">
-        <label class="form-label fw-semibold">Atuação da Equipe do IPF</label>
-        <div class="form-text mb-2">
-            Observe: A equipe foi acolhedora e respeitosa? Houve diálogo e escuta dos participantes? A condução foi clara e bem organizada? A equipe conseguiu lidar bem com imprevistos? Demonstrou sensibilidade ao contexto local? Analise se a prática e conduta da equipe refletiu os princípios institucionais do IPF.
-        </div>
-        <textarea name="avaliacao_atuacao_equipe" rows="4"
-            class="form-control @error('avaliacao_atuacao_equipe') is-invalid @enderror"
-            placeholder="Sua avaliação...">{{ old('avaliacao_atuacao_equipe', $avaliacao->avaliacao_atuacao_equipe) }}</textarea>
-        @error('avaliacao_atuacao_equipe')<div class="invalid-feedback">{{ $message }}</div>@enderror
-    </div>
-
-    {{-- ── 6. Desenvolvimento da Ação (4 textareas) ──────────────── --}}
-    <div class="col-12">
-        <h6 class="fw-semibold mb-3" style="color:#421944;">📝 Desenvolvimento da Ação</h6>
-        <div class="row g-3">
-
-            <div class="col-12">
-                <label class="form-label fw-semibold">
-                    O Planejamento desta ação se mostrou suficiente e adequado?
-                </label>
-                <div class="form-text mb-2">
-                    Reflita sobre: O planejamento fez sentido para esse município? Dialogou com a realidade local (Leitura do Mundo)? As atividades foram adequadas ao público? O tempo foi suficiente? Foi possível adaptar quando necessário? Considerar nesta sua análise as situações desafiadoras da Leitura do Mundo, a Matriz de Aprendizagens e os ODS associados a essa ação
-                </div>
-                <textarea name="avaliacao_planejamento" rows="4"
-                    class="form-control @error('avaliacao_planejamento') is-invalid @enderror"
-                    placeholder="Sua avaliação...">{{ old('avaliacao_planejamento', $avaliacao->avaliacao_planejamento) }}</textarea>
-                @error('avaliacao_planejamento')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
-
-            <div class="col-12">
-                <label class="form-label fw-semibold">
-                    Os recursos materiais utilizados atenderam aos objetivos da ação?
-                </label>
-                <div class="form-text mb-2">
-                    Reflita sobre: Os materiais ajudaram na aprendizagem? Foram adequados ao público? Foram suficientes? Foram bem utilizados durante a ação?
-                </div>
-                <textarea name="avaliacao_recursos_materiais" rows="4"
-                    class="form-control @error('avaliacao_recursos_materiais') is-invalid @enderror"
-                    placeholder="Sua avaliação...">{{ old('avaliacao_recursos_materiais', $avaliacao->avaliacao_recursos_materiais) }}</textarea>
-                @error('avaliacao_recursos_materiais')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
-
-            <div class="col-12">
-                <label class="form-label fw-semibold">
-                    Os links e QR codes de acesso à lista de presença, ficha de avaliação do encontro,
-                    entre outros, funcionaram corretamente?
-                </label>
-                <div class="form-text mb-2">
-                    Reflita sobre: Os participantes conseguiram acessar? Houve problemas de internet? A adesão foi boa? Foi fácil orientar o uso? Indique se a estratégia digital funcionou no território.
-                </div>
-                <textarea name="avaliacao_links_presenca" rows="4"
-                    class="form-control @error('avaliacao_links_presenca') is-invalid @enderror"
-                    placeholder="Sua avaliação...">{{ old('avaliacao_links_presenca', $avaliacao->avaliacao_links_presenca) }}</textarea>
-                @error('avaliacao_links_presenca')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
-
-            <div class="col-12">
-                <label class="form-label fw-semibold">
-                    Que destaques sobre essa ação você acha importante fazer?
-                </label>
-                <div class="form-text mb-2">
-                    Aqui você pode destacar o que foi mais importante: Momentos marcantes do encontro; Reações dos participantes; Aprendizagens percebidas; Falas ou situações significativas; Algo inesperado que vale registrar;
-                </div>
-                <textarea name="avaliacao_destaques" rows="4"
-                    class="form-control @error('avaliacao_destaques') is-invalid @enderror"
-                    placeholder="Sua avaliação...">{{ old('avaliacao_destaques', $avaliacao->avaliacao_destaques) }}</textarea>
-                @error('avaliacao_destaques')<div class="invalid-feedback">{{ $message }}</div>@enderror
-            </div>
-        </div>
+        <textarea name="questao_unificada" rows="12"
+            class="form-control @error('questao_unificada') is-invalid @enderror "
+            placeholder="Sua avaliação geral...">{{ old('questao_unificada', $avaliacao->questao_unificada) }}</textarea>
+        @error('questao_unificada')<div class="invalid-feedback">{{ $message }}</div>@enderror
     </div>
 
     {{-- ── 7. Checklist Pós-Ação ──────────────────────────────────── --}}

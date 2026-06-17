@@ -107,6 +107,9 @@
                   <a href="{{ route('avaliacoes-universais.edit', $avaliacao) }}" class="dropdown-item">Editar</a>
                 </li>
                 <li>
+                  <a href="{{ route('avaliacoes.transcricao', $avaliacao) }}" class="dropdown-item">Transcrição</a>
+                </li>
+                <li>
                   <button type="button" class="dropdown-item" data-bs-toggle="modal" data-bs-target="#modalLinkQrCode{{ $avaliacao->id }}">
                     Link e QR Code
                   </button>

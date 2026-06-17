@@ -3,6 +3,7 @@
 @section('content')
 @php
   $universal = $universal ?? false;
+  $transcricao = $transcricao ?? false;
   $formAction = $formAction ?? route('avaliacoes.update', $avaliacao);
   $cancelUrl = $cancelUrl ?? route('avaliacoes.index');
   $showUrl = $showUrl ?? route('avaliacoes.show', $avaliacao);
@@ -11,7 +12,13 @@
 <div class="row justify-content-center">
   <div class="col-xl-10">
     <div class="d-flex justify-content-between align-items-center mb-4">
-      <h1 class="h3 fw-bold text-engaja mb-0">{{ $universal ? 'Editar avaliação universal' : 'Editar avaliação' }}</h1>
+      <h1 class="h3 fw-bold text-engaja mb-0">
+        @if($universal)
+          Editar avaliação universal
+        @else
+          Editar avaliação
+        @endif
+      </h1>
       <a href="{{ $showUrl }}" class="btn btn-outline-secondary">Ver detalhes</a>
     </div>
 
@@ -76,7 +83,7 @@
               @enderror
             </div>
 
-            @unless($universal)
+            @if(!$universal)
             <div class="col-md-6 d-flex align-items-center">
               <div class="form-check mt-4">
                 <input class="form-check-input" type="checkbox" value="1" id="anonima" disabled
@@ -91,9 +98,11 @@
             </div>
             @else
             <div class="col-md-6 d-flex align-items-center">
-              <div class="form-text mt-4">Avaliações universais são sempre anônimas e não ficam vinculadas a um momento.</div>
+              <div class="form-text mt-4">
+                Avaliações universais são sempre anônimas e não ficam vinculadas a um momento.
+              </div>
             </div>
-            @endunless
+            @endif
           </div>
 
           <div class="mt-4">
