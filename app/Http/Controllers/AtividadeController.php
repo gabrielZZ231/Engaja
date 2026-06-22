@@ -22,20 +22,30 @@ class AtividadeController extends Controller
 {
     use AuthorizesRequests;
 
-    public function index(Evento $evento)
+    public function index(Request $request, Evento $evento)
     {
         $userId = auth()->id();
+
+        $municipiosDisponiveis = Municipio::whereHas('atividades', fn ($q) => $q->where('evento_id', $evento->id))
+            ->with('estado')
+            ->orderBy('nome')
+            ->get();
 
         $atividades = $evento->atividades()
             ->with([
                 'municipios.estado',
                 'avaliacaoAtividades' => fn ($rel) => $rel->when($userId, fn ($query) => $query->where('user_id', $userId)),
             ])
+            ->when($request->filled('municipio_id'), fn ($q) => $q->whereHas(
+                'municipios',
+                fn ($q2) => $q2->where('municipios.id', $request->municipio_id)
+            ))
             ->orderByDesc('dia')
             ->orderByDesc('hora_inicio')
-            ->paginate(12);
+            ->paginate(12)
+            ->appends($request->query());
 
-        return view('atividades.index', compact('evento', 'atividades'));
+        return view('atividades.index', compact('evento', 'atividades', 'municipiosDisponiveis'));
     }
 
     public function create(Evento $evento)
