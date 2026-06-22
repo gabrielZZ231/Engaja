@@ -1,5 +1,13 @@
 @extends('layouts.app')
 
+@push('styles')
+<style>
+  .atividades-actions-dropdown .dropdown-menu {
+    position: fixed !important;
+  }
+</style>
+@endpush
+
 @section('content')
   <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-4">
@@ -16,15 +24,32 @@
       @endhasanyrole
     </div>
 
+    <form method="GET" action="{{ route('eventos.atividades.index', $evento) }}" class="row g-2 align-items-end mb-3">
+      <div class="col-auto">
+        <label for="municipio_id" class="form-label mb-0 small text-muted">Município</label>
+        <select name="municipio_id" id="municipio_id" class="form-select form-select-sm" onchange="this.form.submit()">
+          <option value="">Todos</option>
+          @foreach($municipiosDisponiveis as $m)
+            <option value="{{ $m->id }}" @selected(request('municipio_id') == $m->id)>
+              {{ $m->nome_com_estado ?? $m->nome }}
+            </option>
+          @endforeach
+        </select>
+      </div>
+      @if(request('municipio_id'))
+        <div class="col-auto">
+          <a href="{{ route('eventos.atividades.index', $evento) }}" class="btn btn-sm btn-outline-secondary">Limpar filtro</a>
+        </div>
+      @endif
+    </form>
+
     <div class="table-responsive">
       <table class="table table-hover align-middle">
         <thead class="table-light">
           <tr>
             <th>Dia</th>
-            <th>Hora início</th>
-            <th>Hora de término</th>
             <th>Municípios</th>
-            <th>Público esperado</th>
+            <th>Descrição</th>
             <th>Carga horária</th>
             <th>Status</th>
             @auth
@@ -42,10 +67,8 @@
             @endphp
             <tr>
               <td>{{ \Carbon\Carbon::parse($at->dia)->format('d/m/Y') }}</td>
-              <td>{{ \Carbon\Carbon::parse($at->hora_inicio)->format('H:i') }}</td>
-              <td>{{ $at->hora_fim ? \Carbon\Carbon::parse($at->hora_fim)->format('H:i') : '—' }}</td>
               <td>{{ $munLabel }}</td>
-              <td>{{ $at->publico_esperado ? number_format($at->publico_esperado, 0, ',', '.') : '—' }}</td>
+              <td>{{ $at->descricao }}</td>
               <td>
                 {{ !is_null($at->carga_horaria) ? \App\Support\CargaHoraria::formatMinutos((int) $at->carga_horaria) : '—' }}
               </td>
@@ -66,33 +89,44 @@
               <td class="text-end text-nowrap">
                 @php $minhaAvaliacaoAtividade = $at->minha_avaliacao_atividade; @endphp
 
-                <a href="{{ route('atividades.show', $at) }}" class="btn btn-sm btn-outline-primary">Ver</a>
+                <div class="dropdown atividades-actions-dropdown">
+                  <button class="btn btn-sm btn-engaja dropdown-toggle" type="button"
+                          data-bs-toggle="dropdown" aria-expanded="false">
+                    Gerenciar
+                  </button>
+                  <ul class="dropdown-menu dropdown-menu-end">
+                    <li><a class="dropdown-item" href="{{ route('atividades.show', $at) }}">Ver</a></li>
 
-                @hasanyrole('administrador|gerente|eq_pedagogica')
-                <a href="{{ route('atividades.edit', $at) }}" class="btn btn-sm btn-outline-secondary">Editar</a>
-                @endhasanyrole
+                    @hasanyrole('administrador|gerente|eq_pedagogica')
+                    <li><a class="dropdown-item" href="{{ route('atividades.edit', $at) }}">Editar</a></li>
+                    @endhasanyrole
 
-                 <a href="{{ $minhaAvaliacaoAtividade
-                        ? route('avaliacao-atividade.edit',   $at)
-                        : route('avaliacao-atividade.create', $at) }}"
-                   class="btn btn-sm {{ $minhaAvaliacaoAtividade ? 'btn-warning' : 'btn-outline-warning' }}"
-                   title="{{ $minhaAvaliacaoAtividade ? 'Editar meu relatório' : 'Criar meu relatório' }}">
-                   📋 {{ $minhaAvaliacaoAtividade ? 'Meu relatório' : 'Criar relatório' }}
-                </a>
+                    <li>
+                      <a class="dropdown-item" href="{{ $minhaAvaliacaoAtividade
+                          ? route('avaliacao-atividade.edit',   $at)
+                          : route('avaliacao-atividade.create', $at) }}">
+                        📋 {{ $minhaAvaliacaoAtividade ? 'Editar meu relatório' : 'Criar meu relatório' }}
+                      </a>
+                    </li>
 
-                @hasrole('administrador')
-                <form class="d-inline" method="POST" action="{{ route('atividades.destroy', $at) }}"
-                  data-confirm="Tem certeza que deseja excluir este momento?">
-                  @csrf @method('DELETE')
-                  <button class="btn btn-sm btn-outline-danger">Excluir</button>
-                </form>
-                @endhasrole
+                    @hasrole('administrador')
+                    <li><hr class="dropdown-divider"></li>
+                    <li>
+                      <form method="POST" action="{{ route('atividades.destroy', $at) }}"
+                        data-confirm="Tem certeza que deseja excluir este momento?">
+                        @csrf @method('DELETE')
+                        <button type="submit" class="dropdown-item text-danger">Excluir</button>
+                      </form>
+                    </li>
+                    @endhasrole
+                  </ul>
+                </div>
               </td>
               @endauth
             </tr>
           @empty
             <tr>
-              <td colspan="{{ $temPermissao ? 8 : 7 }}" class="text-center text-muted py-4">Nenhum momento cadastrado.</td>
+              <td colspan="{{ $temPermissao ? 6 : 5 }}" class="text-center text-muted py-4">Nenhum momento cadastrado.</td>
             </tr>
           @endforelse
         </tbody>
