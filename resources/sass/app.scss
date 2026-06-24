@@ -51,3 +51,34 @@ $theme-colors: map-merge(
   --engaja-pink:   #{$engaja-pink};
   --engaja-green:  #{$engaja-green};
 }
+
+/* Componente de tabela (AG Grid): estilos de linha usados nos relatórios com
+   subtotal/total (ex.: relatorio-quantitativo), equivalentes às cores inline
+   que existiam nas tabelas Blade originais. */
+.ag-row.dt-row-subtotal {
+  background-color: #e8daea !important;
+  font-weight: 700;
+}
+
+.ag-row.dt-row-unidentified {
+  background-color: #f8f5f0 !important;
+}
+
+.dt-header-html {
+  width: 100%;
+  white-space: nowrap;
+}
+
+/* Hover do AG Grid: o padrão do tema Quartz é um cinza muito sutil, quase
+   imperceptível. Usa a cor da marca com mais saturação para ficar visível. */
+.ag-row-hover {
+  background-color: rgba($engaja-purple, 0.16) !important;
+}
+
+.ag-row-hover.dt-row-subtotal {
+  background-color: darken(#e8daea, 8%) !important;
+}
+
+.ag-row-hover.dt-row-unidentified {
+  background-color: darken(#f8f5f0, 6%) !important;
+}
