@@ -69,6 +69,14 @@ $theme-colors: map-merge(
   white-space: nowrap;
 }
 
+/* Remove a borda própria do AG Grid (.ag-root-wrapper) quando a tabela já
+   está dentro de um card com sua própria borda/sombra — evita o efeito de
+   "borda dupla". Usar via prop class="dt-no-border" no <x-data-table>. */
+.dt-no-border .ag-root-wrapper {
+  border: none;
+  border-radius: 0;
+}
+
 /* Linha de detalhe "full-width" (simula master/detail sem AG Grid Enterprise).
    A altura real é ajustada via JS conforme o conteúdo (node.setRowHeight),
    respeitando um teto — acima dele, rola internamente em vez de estourar a

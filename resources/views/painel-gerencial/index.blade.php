@@ -150,7 +150,7 @@
     @endphp
     <div class="card shadow-sm mb-4"><div class="card-body">
         <h2 class="h6 mb-3">Metas por Ação Pedagógica</h2>
-        <x-data-table id="grid-painel-metas" :columns="$colunasMetas" :rows="$linhasMetas" :pagination="false" dom-layout="normal" style="height: 440px" />
+        <x-data-table class="dt-no-border" id="grid-painel-metas" :columns="$colunasMetas" :rows="$linhasMetas" :pagination="false" dom-layout="normal" style="height: 440px" />
     </div></div>
 
     {{-- Listas de acompanhamento --}}
@@ -186,19 +186,19 @@
         <div class="col-lg-4">
             <div class="card shadow-sm h-100"><div class="card-body">
                 <h2 class="h6 mb-3">Municípios com baixo engajamento</h2>
-                <x-data-table id="grid-painel-baixo-engajamento" :columns="$colunasBaixoEngajamento" :rows="$linhasBaixoEngajamento" :pagination="false" dom-layout="normal" style="height: 340px" />
+                <x-data-table class="dt-no-border" id="grid-painel-baixo-engajamento" :columns="$colunasBaixoEngajamento" :rows="$linhasBaixoEngajamento" :pagination="false" dom-layout="normal" style="height: 340px" />
             </div></div>
         </div>
         <div class="col-lg-4">
             <div class="card shadow-sm h-100"><div class="card-body">
                 <h2 class="h6 mb-3">Eventos sem avaliação registrada</h2>
-                <x-data-table id="grid-painel-sem-avaliacao" :columns="$colunasSemAvaliacao" :rows="$linhasSemAvaliacao" :pagination="false" dom-layout="normal" style="height: 340px" />
+                <x-data-table class="dt-no-border" id="grid-painel-sem-avaliacao" :columns="$colunasSemAvaliacao" :rows="$linhasSemAvaliacao" :pagination="false" dom-layout="normal" style="height: 340px" />
             </div></div>
         </div>
         <div class="col-lg-4">
             <div class="card shadow-sm h-100"><div class="card-body">
                 <h2 class="h6 mb-3">Participantes com recorrência de ausência</h2>
-                <x-data-table id="grid-painel-recorrencia-ausencia" :columns="$colunasRecorrenciaAusencia" :rows="$linhasRecorrenciaAusencia" :pagination="false" dom-layout="normal" style="height: 340px" />
+                <x-data-table class="dt-no-border" id="grid-painel-recorrencia-ausencia" :columns="$colunasRecorrenciaAusencia" :rows="$linhasRecorrenciaAusencia" :pagination="false" dom-layout="normal" style="height: 340px" />
             </div></div>
         </div>
     </div>
