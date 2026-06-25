@@ -187,7 +187,8 @@ const initTable = (el) => {
 
     if (detailRowField) {
         gridOptions.getRowId = gridOptions.getRowId ?? ((params) => String(params.data?.[idField]));
-        gridOptions.isFullWidthRow = (params) => !!params.data?.[detailRowField];
+        // isFullWidthRow só recebe `rowNode` (não `data`) nos params.
+        gridOptions.isFullWidthRow = (params) => !!params.rowNode?.data?.[detailRowField];
         gridOptions.fullWidthCellRenderer = FullWidthHtmlRenderer;
         gridOptions.embedFullWidthRows = true;
         gridOptions.getRowHeight = (params) =>
