@@ -205,10 +205,12 @@
                 <a class="admin-nav-link {{ request()->routeIs('certificados.modelos.*') ? 'active' : '' }}" href="{{ route('certificados.modelos.index') }}">
                   Modelos de certificados
                 </a>
+              @endhasanyrole
+              @can('certificado.baixar')
                 <a class="admin-nav-link {{ request()->routeIs('certificados.emitidos') ? 'active' : '' }}" href="{{ route('certificados.emitidos') }}">
                   Certificados emitidos
                 </a>
-              @endhasanyrole
+              @endcan
             </div>
           </div>
         </div>

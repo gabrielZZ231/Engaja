@@ -4,10 +4,13 @@
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3 flex-wrap gap-2">
     <div>
-      <p class="text-uppercase text-muted small mb-1">Administração</p>
+      <p class="text-uppercase text-muted small mb-1">Certificados</p>
       <h1 class="h4 fw-bold mb-1">Certificados emitidos</h1>
       <p class="text-muted mb-0">Lista de todos os certificados já emitidos no sistema.</p>
     </div>
+    <a href="{{ route('certificados.emitidos.zip', request()->query()) }}" class="btn btn-engaja">
+      Baixar tudo (ZIP)
+    </a>
   </div>
   <div class="d-flex flex-wrap align-items-center justify-content-between mb-3">
     <div></div>
@@ -40,6 +43,7 @@
     </form>
   </div>
   @php
+      $podeEditarCertificados = auth()->user()?->hasAnyRole(['administrador', 'gerente']) ?? false;
       $columns = [
           ['field' => 'participante', 'headerName' => 'Participante', 'flex' => 2],
           ['field' => 'acao', 'headerName' => 'Ação pedagógica', 'flex' => 2],
@@ -57,13 +61,22 @@
               . '<button class="btn btn-sm btn-engaja dropdown-toggle" type="button" data-bs-toggle="dropdown" data-bs-boundary="viewport" aria-expanded="false">Gerenciar</button>'
               . '<ul class="dropdown-menu dropdown-menu-end">'
               . '<li><a class="dropdown-item" href="' . route('certificados.download', $cert) . '">Baixar PDF</a></li>'
-              . '<li><a class="dropdown-item" href="' . route('certificados.edit', $cert) . '">Editar</a></li>'
+              . ($podeEditarCertificados ? '<li><a class="dropdown-item" href="' . route('certificados.edit', $cert) . '">Editar</a></li>' : '')
               . '</ul></div>',
       ])->values();
   @endphp
 
   <div class="shadow-sm rounded-3 bg-white">
       <x-data-table id="grid-certificados-emitidos" :columns="$columns" :rows="$rows" :pagination="false" />
+      @if($certificados->isEmpty())
+        <div class="p-4 text-center text-muted">
+          @if(!empty($filtroParticipante) || !empty($filtroAcao) || (!empty($filtroEventoId) && empty($contextoEvento)))
+            Nenhum certificado encontrado com esses filtros.
+          @else
+            Nenhum certificado emitido até o momento.
+          @endif
+        </div>
+      @endif
   </div>
   <div class="d-flex justify-content-center mt-3">
     {{ $certificados->links() }}

@@ -227,7 +227,9 @@ Route::middleware(['auth', 'role:administrador|gerente|eq_pedagogica|articulador
         Route::post('{managedUser}/redefinir-senha', [UserManagementController::class, 'resetPassword'])
             ->middleware('role:administrador')
             ->name('password.reset');
-        Route::post('certificados/emitir', [CertificadoController::class, 'emitirPorParticipantes'])->name('certificados.emitir');
+        Route::post('certificados/emitir', [CertificadoController::class, 'emitirPorParticipantes'])
+            ->middleware('role:administrador|gerente')
+            ->name('certificados.emitir');
         Route::get('exportar', [UserManagementController::class, 'export'])->name('export');
         Route::get('autorizacoes-imagem/importar', [AutorizacaoImagemImportController::class, 'import'])->name('autorizacoes.import');
         Route::post('autorizacoes-imagem/importar', [AutorizacaoImagemImportController::class, 'upload'])->name('autorizacoes.upload');
@@ -317,8 +319,12 @@ Route::middleware(['auth'])->group(function () {
     Route::get('/minhas-presencas', [ProfileController::class, 'presencas'])->name('profile.presencas');
 });
 
-Route::middleware(['auth', 'role:administrador|gerente'])->group(function () {
+Route::middleware(['auth', 'permission:certificado.baixar'])->group(function () {
     Route::get('/certificados/emitidos', [CertificadoController::class, 'emitidos'])->name('certificados.emitidos');
+    Route::get('/certificados/emitidos/zip', [CertificadoController::class, 'downloadZipEmitidos'])->name('certificados.emitidos.zip');
+});
+
+Route::middleware(['auth', 'role:administrador|gerente'])->group(function () {
     Route::get('/certificados/{certificado}/edit', [CertificadoController::class, 'edit'])
         ->whereNumber('certificado')
         ->name('certificados.edit');
