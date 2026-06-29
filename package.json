@@ -19,6 +19,7 @@
     "apexcharts": "^5.3.6",
     "fabric": "^7.4.0",
     "puppeteer": "^25.0.4",
+    "quill": "^2.0.3",
     "tom-select": "^2.6.1"
   }
 }
