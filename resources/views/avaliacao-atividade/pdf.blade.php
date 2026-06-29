@@ -107,7 +107,7 @@
         @foreach($camposPerguntas as $campo => $pergunta)
             <div class="qa-item">
                 <div class="qa-question">{{ $pergunta }}</div>
-                <div class="qa-answer">{!! nl2br(e($relatorio->$campo ?: '—')) !!}</div>
+                <div class="qa-answer">{!! $relatorio->$campo ?: '<span class="muted">—</span>' !!}</div>
             </div>
         @endforeach
 

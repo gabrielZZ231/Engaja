@@ -107,7 +107,7 @@
                                     | <strong>Enviado em:</strong> {{ $resposta['atualizado_em']->format('d/m/Y') }}
                                 @endif
                             </div>
-                            <div>{!! nl2br(e($resposta['resposta'])) !!}</div>
+                            <div>{!! $resposta['resposta'] !!}</div>
                         </div>
                     @endforeach
                 @endif

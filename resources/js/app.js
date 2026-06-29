@@ -8,9 +8,12 @@ import TomSelect from "tom-select";
 
 // import bundle com Popper e exporta classes Bootstrap
 import * as bootstrap from "bootstrap";
+import Quill from "quill";
+import "quill/dist/quill.snow.css";
 
 window.bootstrap = bootstrap;
 window.TomSelect = TomSelect;
+window.Quill = Quill;
 
 const loadMultiSelectsIfNeeded = () => {
     document.querySelectorAll("[data-multiselect]").forEach((el) => {
