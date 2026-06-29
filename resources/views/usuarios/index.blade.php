@@ -13,6 +13,9 @@
                 Baixar planilha de usuários
             </button>
             <a href="{{ route('usuarios.autorizacoes.import') }}" class="btn btn-engaja">Importar Autorizações de Imagem</a>
+            @role('administrador')
+            <a href="{{ route('usuarios.notificacoes-agendamento.index') }}" class="btn btn-engaja">Notificações de Agendamento</a>
+            @endrole
             <a href="{{ route('usuarios.create') }}" class="btn btn-engaja">Cadastrar Usuário</a>
         </div>
         @endhasanyrole

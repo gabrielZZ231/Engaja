@@ -2,6 +2,7 @@
 
 use App\Http\Controllers\AgendamentoController;
 use App\Http\Controllers\AgendamentoEfetivacaoController;
+use App\Http\Controllers\AgendamentoNotificacaoController;
 use App\Http\Controllers\AgendamentoParticipanteController;
 use App\Http\Controllers\AtividadeAcaoController;
 use App\Http\Controllers\AtividadeController;
@@ -222,6 +223,10 @@ Route::middleware(['auth', 'role:administrador|gerente|eq_pedagogica|articulador
             Route::get('participantes-exclusivos/exportar', [ParticipantesExclusivosController::class, 'exportar'])->name('participantes-exclusivos.exportar');
             Route::get('sem-vinculo', [UsuariosSemVinculoController::class, 'index'])->name('sem-vinculo.index');
             Route::get('sem-vinculo/exportar', [UsuariosSemVinculoController::class, 'exportar'])->name('sem-vinculo.exportar');
+        });
+        Route::middleware('role:administrador')->group(function () {
+            Route::get('notificacoes-agendamento', [AgendamentoNotificacaoController::class, 'index'])->name('notificacoes-agendamento.index');
+            Route::post('{managedUser}/notificacoes-agendamento', [AgendamentoNotificacaoController::class, 'toggle'])->name('notificacoes-agendamento.toggle');
         });
         Route::get('{managedUser}/editar', [UserManagementController::class, 'edit'])->name('edit');
         Route::put('{managedUser}', [UserManagementController::class, 'update'])->name('update');

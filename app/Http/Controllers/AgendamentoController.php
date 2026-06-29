@@ -51,7 +51,7 @@ class AgendamentoController extends Controller
         $agendamento = Agendamento::create($dados);
         $agendamento->load('atividadeAcao', 'municipio');
 
-        User::role(['administrador', 'gerente', 'eq_pedagogica'])
+        User::permission('agendamento.notificar')
             ->whereNotNull('email')
             ->each(fn (User $user) => Mail::to($user->email)->queue(new AgendamentoCriadoMail($agendamento)));
 
