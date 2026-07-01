@@ -123,7 +123,6 @@ class CertificadoController extends Controller
                 $cert = Certificado::create([
                     'modelo_certificado_id' => $modelo->id,
                     'participante_id' => $participante->id,
-                    'evento_id' => null, // Como é unificado, não pertence a 1 só.
                     'evento_nome' => $eventoNomeFormatado,
                     'codigo_validacao' => Str::uuid()->toString(),
                     'ano' => (int) date('Y'),
@@ -131,6 +130,9 @@ class CertificadoController extends Controller
                     'texto_verso' => $textoVerso,
                     'carga_horaria' => $cargaTotal,
                 ]);
+
+                $eventosIdsDoParticipante = $presencas->map(fn ($p) => $p->evento_pai->id)->unique()->values()->toArray();
+                $cert->eventos()->attach($eventosIdsDoParticipante);
 
                 if (! empty($participante->user?->email)) {
                     $paraNotificar[] = [$participante->user->email, $participante->user->name, $eventoNomeFormatado, $cert->id];
@@ -200,7 +202,6 @@ class CertificadoController extends Controller
                     $cert = Certificado::create([
                         'modelo_certificado_id' => $modelo->id,
                         'participante_id' => $participante->id,
-                        'evento_id' => $evento->id,
                         'evento_nome' => $evento->nome,
                         'codigo_validacao' => Str::uuid()->toString(),
                         'ano' => (int) ($evento->data_inicio ? date('Y', strtotime($evento->data_inicio)) : date('Y')),
@@ -208,6 +209,8 @@ class CertificadoController extends Controller
                         'texto_verso' => $textoVerso,
                         'carga_horaria' => $cargaTotal,
                     ]);
+                    $cert->eventos()->attach([$evento->id]);
+
                     if (! empty($participante->user?->email)) {
                         $paraNotificar[] = [$participante->user->email, $participante->user->name, $evento->nome, $cert->id];
                     }
@@ -483,7 +486,6 @@ class CertificadoController extends Controller
                 $cert = Certificado::create([
                     'modelo_certificado_id' => $modelo->id,
                     'participante_id' => $participante->id,
-                    'evento_id' => $evento->id,
                     'evento_nome' => $evento->nome,
                     'codigo_validacao' => Str::uuid()->toString(),
                     'ano' => (int) ($evento->data_inicio ? date('Y', strtotime($evento->data_inicio)) : date('Y')),
@@ -491,6 +493,8 @@ class CertificadoController extends Controller
                     'texto_verso' => $textoVerso,
                     'carga_horaria' => $cargaTotal,
                 ]);
+                $cert->eventos()->attach([$evento->id]);
+
                 if (! empty($participante->user?->email)) {
                     $paraNotificar[] = [$participante->user->email, $participante->user->name, $evento->nome, $cert->id];
                 }
@@ -644,16 +648,8 @@ class CertificadoController extends Controller
         }
 
         if ($filtroEventoId) {
-            $eventoFiltro = Evento::find((int) $filtroEventoId);
-            $query->where(function ($q) use ($filtroEventoId, $eventoFiltro) {
-                $q->where('evento_id', (int) $filtroEventoId);
-
-                if ($eventoFiltro) {
-                    $q->orWhere(function ($sub) use ($eventoFiltro) {
-                        $sub->whereNull('evento_id')
-                            ->where('evento_nome', $eventoFiltro->nome);
-                    });
-                }
+            $query->whereHas('eventos', function ($q) use ($filtroEventoId) {
+                $q->where('eventos.id', (int) $filtroEventoId);
             });
         }
 
@@ -725,16 +721,8 @@ class CertificadoController extends Controller
         }
 
         if ($filtroEventoId) {
-            $eventoFiltro = Evento::find((int) $filtroEventoId);
-            $query->where(function ($q) use ($filtroEventoId, $eventoFiltro) {
-                $q->where('evento_id', (int) $filtroEventoId);
-
-                if ($eventoFiltro) {
-                    $q->orWhere(function ($sub) use ($eventoFiltro) {
-                        $sub->whereNull('evento_id')
-                            ->where('evento_nome', $eventoFiltro->nome);
-                    });
-                }
+            $query->whereHas('eventos', function ($q) use ($filtroEventoId) {
+                $q->where('eventos.id', (int) $filtroEventoId);
             });
         }
 
@@ -762,8 +750,10 @@ class CertificadoController extends Controller
                 ->join('inscricaos', 'inscricaos.id', '=', 'presencas.inscricao_id')
                 ->join('atividades', 'atividades.id', '=', 'presencas.atividade_id')
                 ->join('eventos', 'eventos.id', '=', 'atividades.evento_id')
+                ->join('certificado_evento', 'certificado_evento.evento_id', '=', 'eventos.id')
                 ->leftJoin('atividade_municipio', 'atividade_municipio.atividade_id', '=', 'atividades.id')
                 ->whereColumn('inscricaos.participante_id', 'certificados.participante_id')
+                ->whereColumn('certificado_evento.certificado_id', 'certificados.id')
                 ->where('presencas.status', 'presente')
                 ->whereNull('presencas.deleted_at')
                 ->whereNull('inscricaos.deleted_at')
@@ -771,13 +761,6 @@ class CertificadoController extends Controller
                 ->where(function ($cidadeQuery) use ($municipioId) {
                     $cidadeQuery->where('atividades.municipio_id', $municipioId)
                         ->orWhere('atividade_municipio.municipio_id', $municipioId);
-                })
-                ->where(function ($eventoQuery) {
-                    $eventoQuery->whereColumn('atividades.evento_id', 'certificados.evento_id')
-                        ->orWhere(function ($unificadoQuery) {
-                            $unificadoQuery->whereNull('certificados.evento_id')
-                                ->whereRaw("lower(coalesce(certificados.evento_nome, '')) like '%' || lower(coalesce(eventos.nome, '')) || '%'");
-                        });
                 });
         });
     }
@@ -924,7 +907,6 @@ class CertificadoController extends Controller
         $certificado->modelo = $modelo;
         $certificado->texto_frente = strtr($modelo->texto_frente ?? '', $map);
         $certificado->texto_verso = strtr($modelo->texto_verso ?? '', $map);
-        $certificado->evento_id = isset($evento) ? $evento->id : null;
         $certificado->evento_nome = $eventoNome;
         $certificado->codigo_validacao = Str::uuid()->toString();
         $certificado->carga_horaria = 600;
