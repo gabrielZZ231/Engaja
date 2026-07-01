@@ -4,6 +4,7 @@ namespace App\Http\Controllers;
 
 use App\Exports\RelatorioMomentoExport;
 use App\Exports\RelatorioTotalGeralExport;
+use App\Http\Controllers\Concerns\ResolvesPdfBrandMargin;
 use App\Models\Atividade;
 use App\Models\Evento;
 use App\Models\Municipio;
@@ -14,6 +15,8 @@ use Spatie\LaravelPdf\Facades\Pdf;
 
 class RelatorioQuantitativoController extends Controller
 {
+    use ResolvesPdfBrandMargin;
+
     public function index(Request $request)
     {
         $eventoId = $request->integer('evento_id');
@@ -418,11 +421,12 @@ class RelatorioQuantitativoController extends Controller
 
         if ($formato === 'pdf') {
             $atividades = $this->getAtividadesData($request);
+            $marginTop = $this->brandImageMarginMm('images/Alfa-Eja Header.png', 297, 40);
 
             return Pdf::view('relatorio-quantitativo.pdf-momento', compact('atividades'))
                 ->format('a4')
                 ->landscape()
-                ->withAlfaEjaBrand(35, 10, 25, 10)
+                ->withAlfaEjaBrand($marginTop, 10, 25, 10)
                 ->download('relatorio-momento-'.now()->format('Ymd_His').'.pdf');
         }
 
@@ -439,11 +443,12 @@ class RelatorioQuantitativoController extends Controller
         if ($formato === 'pdf') {
             $totalGeral = $this->buildTotalGeralData($request);
             $dimensoes = $request->input('dimensoes', []);
+            $marginTop = $this->brandImageMarginMm('images/Alfa-Eja Header.png', 297, 40);
 
             return Pdf::view('relatorio-quantitativo.pdf-total-geral', compact('totalGeral', 'dimensoes'))
                 ->format('a4')
                 ->landscape()
-                ->withAlfaEjaBrand(35, 10, 25, 10)
+                ->withAlfaEjaBrand($marginTop, 10, 25, 10)
                 ->download('relatorio-total-geral-'.now()->format('Ymd_His').'.pdf');
         }
 

@@ -6,6 +6,12 @@
     <style>
         body { font-family: DejaVu Sans, sans-serif; font-size: 12px; margin: 0; padding: 0; color: #1f2937; }
 
+        /* ===== Paginação: repete cabeçalho e não corta linha no meio ===== */
+        table { page-break-inside: auto; }
+        thead { display: table-header-group; }
+        tfoot { display: table-footer-group; }
+        tr { page-break-inside: avoid; }
+
         /* ===== Cabeçalho padrão de documento (x-pdf.header) ===== */
         .pdf-header { background: #421944; color: #ffffff; padding: 12px 16px; margin-top: 20px; margin-bottom: 16px; }
         .pdf-header__title { font-size: 16px; font-weight: 700; margin: 0 0 2px 0; }

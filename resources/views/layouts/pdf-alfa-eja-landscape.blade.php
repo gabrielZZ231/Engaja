@@ -9,15 +9,17 @@
             font-size: 12px;
             margin: 0;
             padding: 0;
-            display: flex;
-            flex-direction: column;
-            justify-content: center;
-            height: 150mm;
         }
         table {
             width: 100%;
             border-collapse: collapse;
         }
+
+        /* ===== Paginação: repete cabeçalho e não corta linha no meio ===== */
+        table { page-break-inside: auto; }
+        thead { display: table-header-group; }
+        tfoot { display: table-footer-group; }
+        tr { page-break-inside: avoid; }
 
         /* ===== Cabeçalho padrão de documento (x-pdf.header) ===== */
         .pdf-header { background: #421944; color: #ffffff; padding: 10px 14px; margin-bottom: 14px; }

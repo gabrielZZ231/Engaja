@@ -79,7 +79,6 @@
             <x-pdf.header
                 :title="$titulo"
                 :subtitle="'Relatório de respostas · ' . ($tipo === 'universal' ? 'Avaliação universal' : 'Avaliação anônima')"
-                :meta="($de || $ate) ? ['Período: ' . ($de ?? 'Início') . ' até ' . ($ate ?? 'Hoje')] : []"
             />
 
             <div class="card">
