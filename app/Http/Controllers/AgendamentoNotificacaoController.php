@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Models\User;
+use Illuminate\Http\JsonResponse;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\View\View;
@@ -33,12 +34,21 @@ class AgendamentoNotificacaoController extends Controller
         ]);
     }
 
-    public function toggle(Request $request, User $managedUser): RedirectResponse
+    public function toggle(Request $request, User $managedUser): RedirectResponse|JsonResponse
     {
         if ($managedUser->hasPermissionTo(self::PERMISSION)) {
             $managedUser->revokePermissionTo(self::PERMISSION);
+            $ativo = false;
         } else {
             $managedUser->givePermissionTo(self::PERMISSION);
+            $ativo = true;
+        }
+
+        if ($request->expectsJson()) {
+            return response()->json([
+                'ativo' => $ativo,
+                'message' => 'Preferência de notificação atualizada com sucesso.',
+            ]);
         }
 
         return redirect()

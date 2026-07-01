@@ -53,17 +53,11 @@
 @section('content')
     <div class="sheet">
         <div class="content">
-            <table class="title-row">
-                <tr>
-                    <td>
-                        <h1 class="report-title">Consolidação de Avaliações</h1>
-                        <div class="report-subtitle">{{ $evento->nome }} &nbsp;·&nbsp; {{ $agrupamentoLabel }}</div>
-                    </td>
-                    <td class="report-generated">
-                        Gerado em {{ now()->format('d/m/Y H:i') }}
-                    </td>
-                </tr>
-            </table>
+            <x-pdf.header
+                title="Consolidação de Avaliações"
+                :subtitle="$evento->nome"
+                :meta="[$agrupamentoLabel]"
+            />
 
     @if(empty($grupos))
         <div class="empty-state">Nenhum dado de avaliação encontrado para esta ação pedagógica.</div>
