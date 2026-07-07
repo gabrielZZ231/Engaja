@@ -57,7 +57,7 @@ Route::prefix('cartas')->name('cartas.')->group(function () {
         Route::post('/termos', [CartasAuthController::class, 'acceptTerms'])->name('terms.accept');
         Route::get('/verificar-email', [CartasAuthController::class, 'verificationNotice'])->name('verification.notice');
 
-        Route::middleware('cartas.verified')->group(function () {
+        Route::middleware(['cartas.verified', 'permission:cartas.ver'])->group(function () {
             Route::get('/dashboard', fn () => view('cartas.dashboard'))->name('dashboard');
         });
     });

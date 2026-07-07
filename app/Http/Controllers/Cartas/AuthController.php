@@ -14,6 +14,7 @@ use Illuminate\Validation\Rule;
 use Illuminate\Validation\Rules;
 use Illuminate\Validation\ValidationException;
 use Illuminate\View\View;
+use Spatie\Permission\Models\Role;
 
 class AuthController extends Controller
 {
@@ -87,6 +88,10 @@ class AuthController extends Controller
             'password' => Hash::make($data['password']),
             'sistema_origem' => User::SISTEMA_CARTAS,
         ]);
+
+        if ($role = Role::where('name', 'cartas_voluntario')->where('guard_name', 'web')->first()) {
+            $user->assignRole($role);
+        }
 
         Auth::login($user);
 
@@ -192,5 +197,4 @@ class AuthController extends Controller
 
         return redirect()->route('cartas.login')->with('status', __(Password::PASSWORD_RESET));
     }
-
 }
