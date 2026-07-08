@@ -3,10 +3,10 @@
 @section('title', 'Suas cartas - Cartas para Esperançar')
 
 @section('body')
-    @include('cartas.operacional._styles')
+    @include('cartas.shared._styles')
 
     <main class="cpe-page cpe-volunteer">
-        @include('cartas.operacional._logo')
+        @include('cartas.shared._logo')
 
         <section class="cpe-volunteer__content">
             <h1>Suas cartas</h1>
@@ -84,7 +84,7 @@
             <button type="button" class="cpe-button cpe-volunteer__send" data-modal-open="sendCartaModal">Enviar uma carta</button>
         </section>
 
-        @include('cartas.operacional._user-menu')
+        @include('cartas.shared._user-menu')
 
         @foreach($cartas as $carta)
             @php($primeira = $carta->mensagens->sortBy('rodada')->first())
@@ -204,7 +204,7 @@
         @endif
     </main>
 
-    @include('cartas.operacional._scripts')
+    @include('cartas.shared._scripts')
 
     <style>
         .cpe-volunteer {

@@ -36,7 +36,7 @@ class UserManagementController extends Controller
             ->paginate(12)
             ->withQueryString();
 
-        return view('cartas.operacional.usuarios.index', [
+        return view('cartas.usuarios.index', [
             'users' => $users,
             'roles' => self::ROLES,
             'search' => $search,
@@ -48,7 +48,7 @@ class UserManagementController extends Controller
         $this->authorizeAdmin($request);
         $this->ensureCartasUser($managedUser);
 
-        return view('cartas.operacional.usuarios.edit', [
+        return view('cartas.usuarios.edit', [
             'managedUser' => $managedUser->load('roles'),
             'roles' => self::ROLES,
         ]);

@@ -3,11 +3,11 @@
 @section('title', 'Cartas entre pessoas - Cartas para Esperançar')
 
 @section('body')
-    @include('cartas.operacional._styles')
+    @include('cartas.shared._styles')
 
     <main class="cpe-page cpe-conversation">
         <section class="cpe-conversation__main">
-        @include('cartas.operacional._logo')
+        @include('cartas.shared._logo')
 
             <div class="cpe-conversation__content">
                 @php
@@ -239,7 +239,7 @@
 
         <aside class="cpe-conversation__aside" aria-hidden="true"></aside>
 
-        @include('cartas.operacional._user-menu')
+        @include('cartas.shared._user-menu')
     </main>
 
     @if($gestor)
@@ -319,7 +319,7 @@
         </div>
     @endif
 
-    @include('cartas.operacional._scripts')
+    @include('cartas.shared._scripts')
 
     <style>
         .cpe-conversation {

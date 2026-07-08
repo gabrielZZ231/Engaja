@@ -3,10 +3,10 @@
 @section('title', 'Gerenciar usuários - Cartas para Esperançar')
 
 @section('body')
-    @include('cartas.operacional._styles')
+    @include('cartas.shared._styles')
 
     <main class="cpe-page cpe-users-page">
-        @include('cartas.operacional._logo')
+        @include('cartas.shared._logo')
 
         <section class="cpe-users-shell">
             <div class="cpe-users-header">
@@ -65,10 +65,10 @@
             </div>
         </section>
 
-        @include('cartas.operacional._user-menu')
+        @include('cartas.shared._user-menu')
     </main>
 
-    @include('cartas.operacional._scripts')
+    @include('cartas.shared._scripts')
 
     <style>
         .cpe-users-page {
