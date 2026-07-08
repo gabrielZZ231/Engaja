@@ -12,6 +12,8 @@ use App\Http\Controllers\AvaliacaoConsolidadaController;
 use App\Http\Controllers\AvaliacaoController;
 use App\Http\Controllers\CertificadoController;
 use App\Http\Controllers\Cartas\AuthController as CartasAuthController;
+use App\Http\Controllers\Cartas\CartaController as CartasCartaController;
+use App\Http\Controllers\Cartas\UserManagementController as CartasUserManagementController;
 use App\Http\Controllers\DashboardController;
 use App\Http\Controllers\DimensaoController;
 use App\Http\Controllers\EscalaController;
@@ -40,6 +42,9 @@ Route::get('/', function () {
 });
 
 Route::prefix('cartas')->name('cartas.')->group(function () {
+    Route::get('/termos', [CartasAuthController::class, 'terms'])->name('terms');
+    Route::post('/termos', [CartasAuthController::class, 'acceptTerms'])->name('terms.accept');
+
     Route::middleware('guest')->group(function () {
         Route::get('/', [CartasAuthController::class, 'login'])->name('login');
         Route::get('/login', [CartasAuthController::class, 'login'])->name('login.form');
@@ -53,12 +58,24 @@ Route::prefix('cartas')->name('cartas.')->group(function () {
     });
 
     Route::middleware('auth')->group(function () {
-        Route::get('/termos', [CartasAuthController::class, 'terms'])->name('terms');
-        Route::post('/termos', [CartasAuthController::class, 'acceptTerms'])->name('terms.accept');
         Route::get('/verificar-email', [CartasAuthController::class, 'verificationNotice'])->name('verification.notice');
 
-        Route::middleware(['cartas.verified', 'permission:cartas.ver'])->group(function () {
-            Route::get('/dashboard', fn () => view('cartas.dashboard'))->name('dashboard');
+        Route::middleware('cartas.verified')->group(function () {
+            Route::get('/dashboard', [CartasCartaController::class, 'dashboard'])->name('dashboard');
+            Route::get('/usuarios', [CartasUserManagementController::class, 'index'])->name('usuarios.index');
+            Route::get('/usuarios/{managedUser}/editar', [CartasUserManagementController::class, 'edit'])->name('usuarios.edit');
+            Route::put('/usuarios/{managedUser}', [CartasUserManagementController::class, 'update'])->name('usuarios.update');
+            Route::post('/cartas', [CartasCartaController::class, 'store'])->name('cartas.store');
+            Route::post('/voluntario/cartas', [CartasCartaController::class, 'storeVolunteerLetter'])->name('voluntario.cartas.store');
+            Route::get('/cartas/{carta}', [CartasCartaController::class, 'show'])->name('cartas.show');
+            Route::post('/cartas/{carta}/mensagens', [CartasCartaController::class, 'storeMessage'])->name('cartas.mensagens.store');
+            Route::post('/cartas/{carta}/responder', [CartasCartaController::class, 'respond'])->name('cartas.respond');
+            Route::delete('/cartas/{carta}', [CartasCartaController::class, 'destroy'])->name('cartas.destroy');
+            Route::post('/mensagens/{mensagem}/aprovar', [CartasCartaController::class, 'approveMessage'])->name('mensagens.approve');
+            Route::post('/mensagens/{mensagem}/solicitar-ajuste', [CartasCartaController::class, 'requestMessageAdjustment'])->name('mensagens.adjustment');
+            Route::put('/mensagens/{mensagem}/ajustar', [CartasCartaController::class, 'updateAdjustedMessage'])->name('mensagens.update-adjustment');
+            Route::get('/mensagens/{mensagem}/preview', [CartasCartaController::class, 'preview'])->name('mensagens.preview');
+            Route::get('/mensagens/{mensagem}/download', [CartasCartaController::class, 'download'])->name('mensagens.download');
         });
     });
 });
