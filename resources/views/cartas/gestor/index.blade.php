@@ -3,11 +3,11 @@
 @section('title', 'Cadastro de cartas - Cartas para Esperançar')
 
 @section('body')
-    @include('cartas.operacional._styles')
+    @include('cartas.shared._styles')
 
     <main class="cpe-page cpe-manager">
         <section class="cpe-manager__left">
-        @include('cartas.operacional._logo')
+        @include('cartas.shared._logo')
 
             <div class="cpe-manager__form-wrap">
                 <h1 class="cpe-title">Cadastro de cartas</h1>
@@ -121,7 +121,7 @@
             </div>
         </section>
 
-        @include('cartas.operacional._user-menu')
+        @include('cartas.shared._user-menu')
 
         @foreach($cartas as $carta)
             <div class="cpe-modal" id="deleteCarta-{{ $carta->id }}">
@@ -143,7 +143,7 @@
         @endforeach
     </main>
 
-    @include('cartas.operacional._scripts')
+    @include('cartas.shared._scripts')
 
     <style>
         .cpe-manager {

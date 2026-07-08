@@ -3,10 +3,10 @@
 @section('title', 'Editar usuário - Cartas para Esperançar')
 
 @section('body')
-    @include('cartas.operacional._styles')
+    @include('cartas.shared._styles')
 
     <main class="cpe-page cpe-user-edit-page">
-        @include('cartas.operacional._logo')
+        @include('cartas.shared._logo')
 
         <section class="cpe-user-edit-card">
             <h1 class="cpe-title">Editar usuário</h1>
@@ -47,10 +47,10 @@
             </form>
         </section>
 
-        @include('cartas.operacional._user-menu')
+        @include('cartas.shared._user-menu')
     </main>
 
-    @include('cartas.operacional._scripts')
+    @include('cartas.shared._scripts')
 
     <style>
         .cpe-user-edit-page {

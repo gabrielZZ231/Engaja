@@ -50,7 +50,7 @@ class CartaController extends Controller
         $engajaUsers = $gestor ? $this->engajaUsersQuery()->get() : collect();
         $voluntarios = $gestor ? $this->voluntariosQuery()->get() : collect();
 
-        return view('cartas.operacional.show', compact('carta', 'gestor', 'engajaUsers', 'voluntarios'));
+        return view('cartas.cartas.show', compact('carta', 'gestor', 'engajaUsers', 'voluntarios'));
     }
 
     public function store(Request $request): RedirectResponse
@@ -546,7 +546,7 @@ class CartaController extends Controller
 
         $engajaUsers = $this->engajaUsersQuery()->get();
 
-        return view('cartas.operacional.gestor', compact('cartas', 'engajaUsers', 'search'));
+        return view('cartas.gestor.index', compact('cartas', 'engajaUsers', 'search'));
     }
 
     private function voluntarioDashboard(Request $request): View
@@ -565,7 +565,7 @@ class CartaController extends Controller
 
         $destinatarios = $this->engajaUsersQuery()->limit(80)->get();
 
-        return view('cartas.operacional.voluntario', compact('cartas', 'destinatarios'));
+        return view('cartas.voluntario.index', compact('cartas', 'destinatarios'));
     }
 
     private function engajaUsersQuery()
