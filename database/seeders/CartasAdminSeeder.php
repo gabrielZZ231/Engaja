@@ -4,6 +4,7 @@ namespace Database\Seeders;
 
 use App\Models\User;
 use Illuminate\Database\Seeder;
+use Illuminate\Support\Facades\Hash;
 use Spatie\Permission\Models\Role;
 
 class CartasAdminSeeder extends Seeder
@@ -32,7 +33,7 @@ class CartasAdminSeeder extends Seeder
         }
 
         $user->name = 'Administrador Cartas';
-        $user->password = 'password';
+        $user->password = Hash::make('password');
         $user->email_verified_at = now();
         $user->cartas_terms_accepted_at = now();
         $user->save();

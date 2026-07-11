@@ -6,8 +6,8 @@ use App\Http\Controllers\Controller;
 use App\Models\Cartas\Carta;
 use App\Models\Cartas\CartaEvento;
 use App\Models\Cartas\CartaMensagem;
-use App\Models\Participante;
 use App\Models\User;
+use App\Services\Cartas\CartaTimbradoService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\DB;
@@ -17,6 +17,8 @@ use Illuminate\View\View;
 
 class CartaController extends Controller
 {
+    public function __construct(private CartaTimbradoService $timbrado) {}
+
     public function dashboard(Request $request): View
     {
         $user = $request->user();
@@ -35,6 +37,7 @@ class CartaController extends Controller
         $carta->load([
             'educando.user',
             'voluntario',
+            'ultimaMensagem',
             'mensagens.remetenteUsuario',
             'mensagens.remetenteParticipante.user',
             'mensagens.destinatarioUsuario',
@@ -143,11 +146,15 @@ class CartaController extends Controller
             'arquivo.mimes' => 'Envie um arquivo PDF ou imagem.',
         ]);
 
-        $carta->loadMissing(['educando.user', 'voluntario']);
+        $carta->loadMissing(['educando.user', 'voluntario', 'ultimaMensagem']);
         $participante = $carta->educando;
         $voluntario = $carta->voluntario;
 
         abort_unless($participante && $voluntario, 422);
+
+        if (! $carta->podeEducandoEnviar()) {
+            return back()->withErrors(['arquivo' => 'Aguarde a resposta do voluntário antes de enviar uma nova carta.']);
+        }
 
         $file = $request->file('arquivo');
 
@@ -192,6 +199,12 @@ class CartaController extends Controller
     {
         abort_unless($carta->voluntario_user_id === $request->user()->id, 403);
 
+        $carta->loadMissing('ultimaMensagem');
+
+        if (! $carta->podeVoluntarioEnviar()) {
+            return back()->withErrors(['modo_resposta' => 'Aguarde a próxima carta do educando antes de responder novamente.']);
+        }
+
         $data = $request->validate([
             'modo_resposta' => ['required', Rule::in(['digitada', 'anexo_manuscrito'])],
             'texto' => ['nullable', 'required_if:modo_resposta,digitada', 'string', 'max:12000'],
@@ -229,6 +242,10 @@ class CartaController extends Controller
                 'criada_por' => $request->user()->id,
                 'atualizada_por' => $request->user()->id,
             ]);
+
+            if ($data['modo_resposta'] === 'digitada') {
+                $this->timbrado->aplicar($mensagem);
+            }
 
             $carta->update([
                 'status' => Carta::STATUS_AGUARDANDO_VERIFICACAO,
@@ -269,7 +286,7 @@ class CartaController extends Controller
 
         $file = $request->file('arquivo');
 
-        DB::transaction(function () use ($request, $user, $destinatario, $file) {
+        DB::transaction(function () use ($user, $destinatario, $file) {
             $carta = Carta::create([
                 'codigo' => $this->nextCodigo(),
                 'educando_participante_id' => $destinatario->participante->id,
@@ -477,6 +494,18 @@ class CartaController extends Controller
 
             $mensagem->update($updates);
 
+            if ($data['modo_resposta'] === 'digitada') {
+                $this->timbrado->aplicar($mensagem);
+            } else {
+                $mensagem->forceFill([
+                    'arquivo_final_path' => null,
+                    'arquivo_final_nome' => null,
+                    'arquivo_final_mime' => null,
+                    'arquivo_final_tamanho' => null,
+                    'timbrado_aplicado_em' => null,
+                ])->save();
+            }
+
             $mensagem->carta->update([
                 'status' => Carta::STATUS_AGUARDANDO_VERIFICACAO,
                 'atualizada_por' => $request->user()->id,
@@ -572,7 +601,7 @@ class CartaController extends Controller
     {
         return User::query()
             ->where('sistema_origem', User::SISTEMA_ENGAJA)
-            ->whereHas('participante')
+            ->whereHas('participante.eventos', fn ($q) => $q->where('is_cartas', true))
             ->with('participante')
             ->orderBy('name');
     }
