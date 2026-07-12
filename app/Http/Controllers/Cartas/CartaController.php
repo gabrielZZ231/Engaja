@@ -583,7 +583,7 @@ class CartaController extends Controller
         $user = $request->user();
 
         $cartas = Carta::query()
-            ->with(['educando.user', 'mensagens' => fn ($q) => $q->latest('rodada')])
+            ->with(['educando.user', 'mensagens' => fn ($q) => $q->latest('rodada'), 'ultimaMensagem'])
             ->withCount(['mensagens as mensagens_nao_lidas_count' => function ($query) use ($user) {
                 $query->where('destinatario_user_id', $user->id)
                     ->whereNull('lida_em');

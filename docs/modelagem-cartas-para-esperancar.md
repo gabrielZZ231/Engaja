@@ -26,14 +26,14 @@ Resumo atual:
 | Tabelas `cartas`, `carta_mensagens`, `carta_eventos` | `[IMPLEMENTADO]` | migrations `2026_07_07_000003` a `000005` |
 | Models do modulo | `[IMPLEMENTADO]` | `app/Models/Cartas` |
 | Relacoes com `users`, `participantes`, `eventos`, `atividades`, `municipios` | `[IMPLEMENTADO]` | models existentes e models de Cartas |
-| Workflow de envio, aprovacao e ajuste de mensagem | `[IMPLEMENTADO]` | `App\Services\Cartas\CartaMensagemWorkflowService` |
+| Workflow de envio, aprovacao e ajuste de mensagem | `[IMPLEMENTADO]` | `CartaController::storeMessage/respond/approveMessage/requestMessageAdjustment/updateAdjustedMessage` |
 | Aplicacao real do timbrado/PDF final | `[IMPLEMENTADO]` | `App\Services\Cartas\CartaTimbradoService` sobrepoe o texto digitado no PDF timbrado (FPDI); so para resposta digitada |
 | Controllers operacionais de cartas, mensagens, verificacao e relatorios | `[PARCIAL]` | `CartaController` cobre cadastro/mensagens/verificacao; relatorios ainda nao |
 | Telas de cadastro/lista/resposta/verificacao | `[IMPLEMENTADO]` | views em `resources/views/cartas` |
 | Filtro de remetentes pela acao especial (`eventos.is_cartas`) | `[IMPLEMENTADO]` | coluna `is_cartas` (marcada direto no banco), filtro em `CartaController::engajaUsersQuery` |
 | Busca no dropdown de remetente | `[IMPLEMENTADO]` | combobox `cpe-combobox` em `gestor/index.blade.php` + `_scripts.blade.php` |
-| Envio mostra so o campo da opcao (texto ou anexo) | `[IMPLEMENTADO]` | `data-modo-form`/`cpe-modo-field` em `show.blade.php` + `_scripts.blade.php` |
-| Intercalacao (uma carta por vez, alternando os lados) | `[IMPLEMENTADO]` | `Carta::proximoTipoRemetente()` e guardas em `storeMessage`/`respond` |
+| Envio mostra so o campo da opcao (texto ou anexo) | `[IMPLEMENTADO]` | `data-modo-form`/`cpe-modo-field` em `show.blade.php` e `voluntario/index.blade.php` + `_scripts.blade.php` |
+| Intercalacao (uma carta por vez, alternando os lados) | `[IMPLEMENTADO]` | backend: `Carta::proximoTipoRemetente()` e guardas em `storeMessage`/`respond`; UI: botao desabilitado com aviso em `show.blade.php` e `voluntario/index.blade.php` quando nao e a vez do usuario |
 | Telas de relatorios | `[PENDENTE]` | ainda nao criadas |
 
 ## Reaproveitamento do sistema atual
