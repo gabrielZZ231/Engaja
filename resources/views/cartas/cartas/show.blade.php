@@ -118,7 +118,7 @@
                                     @if(str_starts_with((string) $mensagemMime, 'image/'))
                                         <img src="{{ route('cartas.mensagens.preview', $mensagem) }}" alt="Carta enviada">
                                     @elseif($mensagemMime === 'application/pdf')
-                                        <iframe src="{{ route('cartas.mensagens.preview', $mensagem) }}" title="Carta enviada"></iframe>
+                                        <iframe src="{{ route('cartas.mensagens.preview', $mensagem) }}#toolbar=0&navpanes=0" title="Carta enviada"></iframe>
                                     @else
                                         <div class="cpe-file-placeholder">Arquivo anexado: {{ $mensagem->arquivo_final_nome ?: $mensagem->anexo_original_nome }}</div>
                                     @endif
@@ -130,7 +130,7 @@
                             <div class="cpe-modal-actions">
                                 <button type="button" class="cpe-button cpe-button--ghost" data-modal-close>Fechar</button>
                                 @if($mensagem->anexo_original_path || $mensagem->arquivo_final_path)
-                                    <a class="cpe-button cpe-button--ghost" href="{{ route('cartas.mensagens.download', $mensagem) }}">Imprimir</a>
+                                    <button type="button" class="cpe-button cpe-button--ghost" data-print-src="{{ route('cartas.mensagens.preview', $mensagem) }}">Imprimir</button>
                                 @else
                                     <button type="button" class="cpe-button cpe-button--ghost">Imprimir</button>
                                 @endif

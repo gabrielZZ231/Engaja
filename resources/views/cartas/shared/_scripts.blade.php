@@ -207,6 +207,46 @@
             apply();
         });
 
+        let printFrame = null;
+        document.querySelectorAll('[data-print-src]').forEach((button) => {
+            button.addEventListener('click', () => {
+                const src = button.dataset.printSrc;
+                if (!src) {
+                    return;
+                }
+
+                if (printFrame) {
+                    printFrame.remove();
+                }
+
+                printFrame = document.createElement('iframe');
+                printFrame.setAttribute('aria-hidden', 'true');
+                Object.assign(printFrame.style, {
+                    position: 'fixed',
+                    right: '0',
+                    bottom: '0',
+                    width: '0',
+                    height: '0',
+                    border: '0',
+                });
+
+                printFrame.addEventListener('load', () => {
+                    // O plugin de PDF precisa montar antes de imprimir.
+                    setTimeout(() => {
+                        try {
+                            printFrame.contentWindow.focus();
+                            printFrame.contentWindow.print();
+                        } catch (error) {
+                            window.open(src, '_blank');
+                        }
+                    }, 300);
+                });
+
+                printFrame.src = src;
+                document.body.appendChild(printFrame);
+            });
+        });
+
         document.querySelectorAll('.cpe-floating-user').forEach((menu) => {
             const trigger = menu.querySelector('.cpe-user-trigger');
             trigger?.addEventListener('click', (event) => {

@@ -67,7 +67,7 @@
                                 </td>
                                 <td>
                                     @if($primeira?->anexo_original_path)
-                                        <a href="{{ route('cartas.mensagens.download', $primeira) }}" class="cpe-link">Imprimir</a>
+                                        <button type="button" class="cpe-link" data-print-src="{{ route('cartas.mensagens.preview', $primeira) }}">Imprimir</button>
                                     @else
                                         <button type="button" class="cpe-link">Imprimir</button>
                                     @endif
@@ -105,7 +105,7 @@
                             @if(str_starts_with((string) $primeiraMime, 'image/'))
                                 <img src="{{ route('cartas.mensagens.preview', $primeira) }}" alt="Carta enviada por {{ $carta->educando?->user?->name ?? 'Remetente' }}">
                             @elseif($primeiraMime === 'application/pdf')
-                                <iframe src="{{ route('cartas.mensagens.preview', $primeira) }}" title="Carta enviada por {{ $carta->educando?->user?->name ?? 'Remetente' }}"></iframe>
+                                <iframe src="{{ route('cartas.mensagens.preview', $primeira) }}#toolbar=0&navpanes=0" title="Carta enviada por {{ $carta->educando?->user?->name ?? 'Remetente' }}"></iframe>
                             @else
                                 <div class="cpe-file-placeholder">Arquivo anexado: {{ $primeira->anexo_original_nome }}</div>
                             @endif
@@ -116,7 +116,7 @@
                     <div class="cpe-modal-actions cpe-modal-actions--three">
                         <button type="button" class="cpe-button cpe-button--ghost" data-modal-close>Fechar</button>
                         @if($primeira?->anexo_original_path)
-                            <a class="cpe-button cpe-button--ghost" href="{{ route('cartas.mensagens.download', $primeira) }}">Imprimir</a>
+                            <button type="button" class="cpe-button cpe-button--ghost" data-print-src="{{ route('cartas.mensagens.preview', $primeira) }}">Imprimir</button>
                         @else
                             <button type="button" class="cpe-button cpe-button--ghost">Imprimir</button>
                         @endif
