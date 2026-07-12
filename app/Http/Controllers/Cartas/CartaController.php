@@ -7,6 +7,8 @@ use App\Models\Cartas\Carta;
 use App\Models\Cartas\CartaEvento;
 use App\Models\Cartas\CartaMensagem;
 use App\Models\User;
+use App\Notifications\Cartas\AjusteSolicitadoNotification;
+use App\Notifications\Cartas\CartaRecebidaNotification;
 use App\Services\Cartas\CartaTimbradoService;
 use Illuminate\Http\RedirectResponse;
 use Illuminate\Http\Request;
@@ -86,7 +88,7 @@ class CartaController extends Controller
 
         $file = $request->file('arquivo');
 
-        DB::transaction(function () use ($request, $participante, $voluntario, $file) {
+        $carta = DB::transaction(function () use ($request, $participante, $voluntario, $file) {
             $codigo = $this->nextCodigo();
 
             $carta = Carta::create([
@@ -130,7 +132,11 @@ class CartaController extends Controller
                     'educando_participante_id' => $participante->id,
                 ],
             ]);
+
+            return $carta;
         });
+
+        $voluntario->notify(new CartaRecebidaNotification($carta->load('mensagens')));
 
         return redirect()->route('cartas.dashboard')->with('status', 'Carta enviada para o voluntario.');
     }
@@ -191,6 +197,8 @@ class CartaController extends Controller
                 'tipo' => CartaEvento::TIPO_MENSAGEM_ENVIADA,
             ]);
         });
+
+        $voluntario->notify(new CartaRecebidaNotification($carta->load('mensagens')));
 
         return redirect()->route('cartas.cartas.show', $carta)->with('status', 'Carta adicionada.');
     }
@@ -424,6 +432,10 @@ class CartaController extends Controller
                 ],
             ]);
         });
+
+        $mensagem->loadMissing('carta');
+        $voluntario = $mensagem->carta->voluntario;
+        $voluntario?->notify(new AjusteSolicitadoNotification($mensagem));
 
         return back()->with('status', 'Ajuste solicitado ao voluntário.');
     }
