@@ -11,10 +11,10 @@ class CartasAdminSeeder extends Seeder
 {
     public function run(): void
     {
-        Role::firstOrCreate([
-            'name' => 'cartas_admin',
-            'guard_name' => 'web',
-        ]);
+        // Criar todas as roles Cartas (infraestrutura)
+        Role::firstOrCreate(['name' => 'cartas_admin', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'cartas_gestao', 'guard_name' => 'web']);
+        Role::firstOrCreate(['name' => 'cartas_voluntario', 'guard_name' => 'web']);
 
         $user = User::withTrashed()
             ->where('email', 'admin.cartas@example.com')

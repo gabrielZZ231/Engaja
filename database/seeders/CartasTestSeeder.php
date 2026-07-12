@@ -16,10 +16,18 @@ class CartasTestSeeder extends Seeder
 {
     public function run(): void
     {
-        // 1. Buscar admin Cartas criado por CartasAdminSeeder
-        $adminCartas = User::where('email', 'admin.cartas@example.com')
-            ->where('sistema_origem', User::SISTEMA_CARTAS)
-            ->firstOrFail();
+        // 1. Buscar admin Cartas criado por CartasAdminSeeder (com fallback seguro)
+        $adminCartas = User::firstOrCreate(
+            [
+                'email' => 'admin.cartas@example.com',
+                'sistema_origem' => User::SISTEMA_CARTAS,
+            ],
+            [
+                'name' => 'Admin Cartas (Fallback)',
+                'password' => Hash::make('password'),
+                'email_verified_at' => now(),
+            ]
+        );
 
         // 2. Criar evento Cartas com is_cartas=true
         $eventCartas = Evento::firstOrCreate(
@@ -35,10 +43,10 @@ class CartasTestSeeder extends Seeder
             ]
         );
 
-        // 3. Garantir roles existem
-        $adminRole = Role::firstOrCreate(['name' => 'cartas_admin', 'guard_name' => 'web']);
-        $gestaoRole = Role::firstOrCreate(['name' => 'cartas_gestao', 'guard_name' => 'web']);
-        $voluntarioRole = Role::firstOrCreate(['name' => 'cartas_voluntario', 'guard_name' => 'web']);
+        // 3. Obter roles criadas por CartasAdminSeeder
+        $adminRole = Role::where('name', 'cartas_admin')->firstOrFail();
+        $gestaoRole = Role::where('name', 'cartas_gestao')->firstOrFail();
+        $voluntarioRole = Role::where('name', 'cartas_voluntario')->firstOrFail();
 
         // 4. Criar usuários Cartas
 
