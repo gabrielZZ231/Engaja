@@ -19,9 +19,13 @@ return [
         'margin_left' => 13.0,
         'margin_right' => 13.0,
         'start_top' => 28.5,   // topo do texto da primeira linha
-        'line_height' => 4.94, // igual ao espaçamento das linhas pontilhadas (14pt)
-        'bottom_margin' => 46.0, // reserva o rodapé (logos/ilustração)
-        'font_family' => 'Helvetica',
-        'font_size' => 10.0,
+        'line_height' => 5.0,  // passo exato das linhas pontilhadas do modelo (medido)
+        'bottom_margin' => 36.0, // reserva o rodapé; escreve até a última linha de largura cheia
+
+        // Fonte manuscrita (Kalam) embutida via FPDF makefont (cp1252).
+        'font_family' => 'Kalam',
+        'font_dir' => resource_path('fonts/cartas'),
+        'font_file' => 'Kalam-Regular.json',
+        'font_size' => 11.0,
     ],
 ];

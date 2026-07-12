@@ -61,6 +61,8 @@ class CartaTimbradoService
         $pdf->setSourceFile($modelo);
         $pdf->templateId = $pdf->importPage(1);
 
+        $pdf->AddFont($config['font_family'], '', $config['font_file'], $config['font_dir']);
+
         $pdf->SetAutoPageBreak(true, $config['bottom_margin']);
         $pdf->SetMargins($config['margin_left'], $config['start_top'], $config['margin_right']);
         $pdf->AddPage();
