@@ -4,13 +4,22 @@ namespace App\Models;
 
 use App\Models\Cartas\Carta;
 use App\Models\Cartas\CartaMensagem;
+use Carbon\Carbon;
 use Illuminate\Database\Eloquent\Factories\HasFactory;
 use Illuminate\Database\Eloquent\Model;
 use Illuminate\Database\Eloquent\SoftDeletes;
+use Throwable;
 
 class Participante extends Model
 {
     use HasFactory, SoftDeletes;
+
+    public const SEXOS = ['Masculino', 'Feminino', 'Não preenchido'];
+
+    private const NAO_INFORMADO = 'Não informado';
+
+    /** Valor padrão da coluna sexo quando o cadastro não informou. */
+    private const SEXO_NAO_PREENCHIDO = 'Não preenchido';
 
     public const TAG_REDE_ENSINO = 'Rede de Ensino';
 
@@ -32,10 +41,14 @@ class Participante extends Model
         'tipo_organizacao',
         'tag',
         'data_entrada',
+        'data_nascimento',
+        'sexo',
         'autorizacao_imagem',
     ];
 
     protected $appends = ['cpf_valido'];
+
+    protected $casts = ['data_nascimento' => 'date:Y-m-d'];
 
     public function user()
     {
@@ -107,6 +120,72 @@ class Participante extends Model
         return collect([$municipio, $estado])
             ->filter()
             ->implode(' - ');
+    }
+
+    /**
+     * Idade em anos completos, a partir de data_nascimento.
+     * Retorna null sem a data (ou se a coluna ainda não existir no banco).
+     */
+    public function getIdadeAttribute(): ?int
+    {
+        // Valor cru: o cast de data lançaria exceção antes de podermos tratá-la.
+        $bruto = $this->getAttributes()['data_nascimento'] ?? null;
+
+        if (blank($bruto)) {
+            return null;
+        }
+
+        try {
+            $nascimento = Carbon::parse($bruto);
+        } catch (Throwable) {
+            return null;
+        }
+
+        return $nascimento->isFuture() ? null : $nascimento->age;
+    }
+
+    /**
+     * Conjunto fechado de dados do remetente exibido no modal da carta.
+     * Qualquer outro atributo (CPF, telefone, e-mail, demográficos) fica de fora.
+     *
+     * @return array{nome: string, cidade: string, estado: string, idade: string, sexo: string}
+     */
+    public function dadosRemetente(): array
+    {
+        $estado = $this->municipio?->estado;
+        $idade = $this->idade;
+
+        return [
+            'nome' => $this->user?->name ?: 'Participante',
+            'cidade' => $this->municipio?->nome ?: self::NAO_INFORMADO,
+            'estado' => $this->rotuloEstado($estado?->nome, $estado?->sigla),
+            'idade' => $idade !== null
+                ? $idade.' '.($idade === 1 ? 'ano' : 'anos')
+                : self::NAO_INFORMADO,
+            'sexo' => $this->rotuloSexo(),
+        ];
+    }
+
+    private function rotuloSexo(): string
+    {
+        $sexo = array_key_exists('sexo', $this->getAttributes())
+            ? $this->getAttribute('sexo')
+            : null;
+
+        if (blank($sexo) || $sexo === self::SEXO_NAO_PREENCHIDO) {
+            return self::NAO_INFORMADO;
+        }
+
+        return $sexo;
+    }
+
+    private function rotuloEstado(?string $nome, ?string $sigla): string
+    {
+        if (filled($nome) && filled($sigla)) {
+            return "{$nome} ({$sigla})";
+        }
+
+        return $nome ?: $sigla ?: self::NAO_INFORMADO;
     }
 
     private function validaCpf($cpf)
