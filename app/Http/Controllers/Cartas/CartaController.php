@@ -767,38 +767,30 @@ class CartaController extends Controller
         $municipioId = $request->input('municipio_id', $request->query('municipio_id'));
         $statusFilter = $request->input('status', $request->query('status'));
 
-        $cartaIds = $request->input('carta_ids', $request->query('carta_ids'));
-        if (is_string($cartaIds)) {
-            $cartaIds = array_filter(explode(',', $cartaIds));
-        }
-
-        $query = Carta::query()
+        $cartas = Carta::query()
             ->with([
                 'educando.user',
                 'educando.municipio.estado',
                 'voluntario',
                 'mensagens' => function ($q) {
-                    $q->orderBy('rodada', 'asc');
+                    $q->where('tipo_remetente', CartaMensagem::TIPO_REMETENTE_VOLUNTARIO)
+                        ->whereNotNull('enviada_em')
+                        ->reorder('rodada', 'desc')
+                        ->limit(1);
                 },
-            ]);
-
-        if (! empty($cartaIds) && is_array($cartaIds)) {
-            $query->whereIn('cartas.id', $cartaIds);
-        } else {
-            $query->when($search !== '', function ($query) use ($search) {
+            ])
+            ->when($search !== '', function ($query) use ($search) {
                 $this->applySearchFilter($query, $search);
             })
-                ->when($municipioId, function ($query) use ($municipioId) {
-                    $query->whereHas('educando', function ($q) use ($municipioId) {
-                        $q->where('municipio_id', $municipioId);
-                    });
-                })
-                ->when($statusFilter, function ($query) use ($statusFilter) {
-                    $this->applyStatusFilter($query, $statusFilter);
+            ->when($municipioId, function ($query) use ($municipioId) {
+                $query->whereHas('educando', function ($q) use ($municipioId) {
+                    $q->where('municipio_id', $municipioId);
                 });
-        }
-
-        $cartas = $query->latest()->get();
+            })
+            ->when($statusFilter, function ($query) use ($statusFilter) {
+                $this->applyStatusFilter($query, $statusFilter);
+            })
+            ->latest()->get();
 
         $zipFile = storage_path('app/temp_cartas_lote_'.uniqid().'.zip');
         $zip = new \ZipArchive;
