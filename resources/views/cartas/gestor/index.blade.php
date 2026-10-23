@@ -232,8 +232,9 @@
             flex: 1;
             display: flex;
             flex-direction: column;
-            justify-content: center;
+            justify-content: flex-start;
             gap: 20px;
+            padding-top: 260px;
             padding-bottom: 110px;
         }
 
@@ -630,6 +631,7 @@
             }
 
             .cpe-manager__form-wrap {
+                padding-top: 0;
                 padding-bottom: 0;
             }
         }
