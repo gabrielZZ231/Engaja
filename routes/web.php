@@ -109,6 +109,7 @@ Route::prefix('cartas')->name('cartas.')->group(function () {
             Route::post('/cartas/{carta}/mensagens', [CartasCartaController::class, 'storeMessage'])->name('cartas.mensagens.store');
             Route::post('/cartas/{carta}/responder', [CartasCartaController::class, 'respond'])->name('cartas.respond');
             Route::delete('/cartas/{carta}', [CartasCartaController::class, 'destroy'])->name('cartas.destroy');
+            Route::post('/mensagens/aprovar-lote', [CartasCartaController::class, 'approveBatch'])->name('mensagens.approve-batch');
             Route::post('/mensagens/{mensagem}/aprovar', [CartasCartaController::class, 'approveMessage'])->name('mensagens.approve');
             Route::post('/mensagens/{mensagem}/solicitar-ajuste', [CartasCartaController::class, 'requestMessageAdjustment'])->name('mensagens.adjustment');
             Route::put('/mensagens/{mensagem}/ajustar', [CartasCartaController::class, 'updateAdjustedMessage'])->name('mensagens.update-adjustment');
