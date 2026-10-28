@@ -15,6 +15,7 @@ use App\Http\Controllers\AvaliacaoController;
 use App\Http\Controllers\Cartas\AuthController as CartasAuthController;
 use App\Http\Controllers\Cartas\CartaController as CartasCartaController;
 use App\Http\Controllers\Cartas\CartaViewerDiagnosticController as CartasViewerDiagnosticController;
+use App\Http\Controllers\Cartas\RelatorioController as CartasRelatorioController;
 use App\Http\Controllers\Cartas\UserManagementController as CartasUserManagementController;
 use App\Http\Controllers\CertificadoController;
 use App\Http\Controllers\DashboardController;
@@ -99,6 +100,9 @@ Route::prefix('cartas')->name('cartas.')->group(function () {
         Route::middleware('cartas.verified')->group(function () {
             Route::post('/welcome-seen', [CartasAuthController::class, 'markWelcomeSeen'])->name('welcome.seen');
             Route::get('/dashboard', [CartasCartaController::class, 'dashboard'])->name('dashboard');
+            Route::get('/relatorios', [CartasRelatorioController::class, 'index'])
+                ->middleware('can:cartas.ver-relatorios')
+                ->name('relatorios.index');
             Route::get('/usuarios', [CartasUserManagementController::class, 'index'])->name('usuarios.index');
             Route::get('/usuarios/{managedUser}/editar', [CartasUserManagementController::class, 'edit'])->name('usuarios.edit');
             Route::put('/usuarios/{managedUser}', [CartasUserManagementController::class, 'update'])->name('usuarios.update');
