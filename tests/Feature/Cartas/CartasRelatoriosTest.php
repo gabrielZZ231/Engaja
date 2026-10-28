@@ -6,6 +6,7 @@ use App\Models\Cartas\Carta;
 use App\Models\Cartas\CartaMensagem;
 use App\Models\User;
 use App\Services\Cartas\RelatorioCartasService;
+use Database\Seeders\CartasRelatoriosPermissionsSeeder;
 use Spatie\Permission\Models\Role;
 
 class CartasRelatoriosTest extends CartasBaseTest
@@ -37,9 +38,10 @@ class CartasRelatoriosTest extends CartasBaseTest
 
     public function test_administrador_cartas_com_permissao_acessa_relatorios(): void
     {
+        $this->seed(CartasRelatoriosPermissionsSeeder::class);
+
         $admin = User::factory()->create(['sistema_origem' => User::SISTEMA_CARTAS]);
         $admin->assignRole('cartas_admin');
-        $admin->givePermissionTo('cartas.relatorio');
 
         $this->actingAs($admin)->get(route('cartas.relatorios.index'))->assertOk();
     }
