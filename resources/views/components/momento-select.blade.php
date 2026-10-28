@@ -37,6 +37,9 @@
         @endforeach
     </select>
 
+    <div class="form-select momento-select__loading text-muted" role="status" aria-busy="true"
+        data-momento-loading>Carregando momentos...</div>
+
     <div data-momento-ui hidden>
         <button type="button" id="{{ $inputId }}-trigger" class="form-select momento-select__trigger"
             aria-haspopup="dialog" aria-expanded="false" aria-controls="{{ $inputId }}-panel"

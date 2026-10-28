@@ -7,6 +7,21 @@
     display: none !important;
 }
 
+.momento-select__loading {
+    display: none;
+    cursor: wait;
+}
+
+@media (scripting: enabled) {
+    .momento-select:not(.momento-select--enhanced) .momento-select__native {
+        display: none;
+    }
+
+    .momento-select:not(.momento-select--enhanced) .momento-select__loading {
+        display: block;
+    }
+}
+
 .momento-select--enhanced .momento-select__native {
     position: absolute;
     width: 1px;
