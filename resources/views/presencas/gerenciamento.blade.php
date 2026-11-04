@@ -47,9 +47,9 @@
                         <i class="bi bi-check-circle-fill fs-4"></i>
                     </div>
                     <div>
-                        <div class="text-muted small">Nesta Listagem (Abertos)</div>
+                        <div class="text-muted small">Total de Momentos Abertos</div>
                         <div class="fs-4 fw-bold text-success" id="kpi-abertas">
-                            {{ $atividades->getCollection()->filter(fn($a) => $a->presencaEstaAberta())->count() }}
+                            {{ $totalAbertas }}
                         </div>
                     </div>
                 </div>
@@ -63,9 +63,9 @@
                         <i class="bi bi-lock-fill fs-4"></i>
                     </div>
                     <div>
-                        <div class="text-muted small">Nesta Listagem (Fechados)</div>
+                        <div class="text-muted small">Total de Momentos Fechados</div>
                         <div class="fs-4 fw-bold text-secondary" id="kpi-fechadas">
-                            {{ $atividades->getCollection()->filter(fn($a) => ! $a->presencaEstaAberta())->count() }}
+                            {{ $totalFechadas }}
                         </div>
                     </div>
                 </div>

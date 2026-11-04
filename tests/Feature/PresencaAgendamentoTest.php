@@ -576,4 +576,73 @@ class PresencaAgendamentoTest extends TestCase
         $resBusca->assertSee('Oficina Leitura Aberta');
         $resBusca->assertDontSee('Palestra Fechada');
     }
+
+    public function test_cards_do_gerenciamento_contabilizam_todos_os_momentos_independente_da_pagina_e_dos_filtros(): void
+    {
+        Carbon::setTestNow(Carbon::parse('2026-10-06 12:00:00', 'UTC'));
+        $gerente = $this->criarUsuarioComPermissaoAbrir();
+        $eixo = Eixo::create(['nome' => 'Eixo Teste']);
+        $evento = Evento::factory()->create(['eixo_id' => $eixo->id]);
+
+        Atividade::factory()->count(30)->presencaFechada()->create(['evento_id' => $evento->id]);
+
+        // Inclui transições vencidas, o instante exato da transição e estado manual
+        // com abertura futura, conforme presencaEstaAberta().
+        $estados = [
+            [false, null, null],
+            [true, null, null],
+            [false, now()->subHour(), null],
+            [true, now()->addHour(), null],
+            [false, now()->addHour(), null],
+            [true, now()->subHour(), now()],
+            [false, now(), now()->addHour()],
+            [true, null, now()->subHour()],
+            [true, null, now()->addHour()],
+        ];
+
+        foreach ($estados as [$ativa, $abre, $fecha]) {
+            Atividade::factory()->create([
+                'evento_id' => $evento->id,
+                'presenca_ativa' => $ativa,
+                'presenca_abre_em' => $abre,
+                'presenca_fecha_em' => $fecha,
+            ]);
+        }
+
+        // Momentos excluídos ou de ações excluídas não entram nos totais.
+        $atributosExcluidos = [
+            'presenca_ativa' => true,
+            'presenca_fecha_em' => now()->addHour(),
+        ];
+        Atividade::factory()->create($atributosExcluidos + ['evento_id' => $evento->id])->delete();
+        $eventoExcluido = Evento::factory()->create(['eixo_id' => $eixo->id]);
+        Atividade::factory()->create($atributosExcluidos + ['evento_id' => $eventoExcluido->id]);
+        $eventoExcluido->delete();
+
+        foreach ([[], ['page' => 2], ['status' => 'aberta', 'q' => 'Busca sem resultados']] as $filtros) {
+            $response = $this->actingAs($gerente)->get(route('presencas.gerenciamento', $filtros));
+
+            $response->assertOk()
+                ->assertViewHas('totalAtividades', 39)
+                ->assertViewHas('totalAbertas', 5)
+                ->assertViewHas('totalFechadas', 34)
+                ->assertViewHas('comAgendamentoFuturo', 4)
+                ->assertDontSee('Nesta Listagem');
+
+            $quantidadeNaPagina = isset($filtros['q']) ? 0 : (isset($filtros['page']) ? 14 : 25);
+            $this->assertCount($quantidadeNaPagina, $response->viewData('atividades'));
+        }
+    }
+
+    public function test_cards_do_gerenciamento_retornam_zero_quando_nao_ha_momentos(): void
+    {
+        $gerente = $this->criarUsuarioComPermissaoAbrir();
+
+        $this->actingAs($gerente)->get(route('presencas.gerenciamento'))
+            ->assertOk()
+            ->assertViewHas('totalAtividades', 0)
+            ->assertViewHas('totalAbertas', 0)
+            ->assertViewHas('totalFechadas', 0)
+            ->assertViewHas('comAgendamentoFuturo', 0);
+    }
 }
