@@ -274,10 +274,9 @@
                     . '</div>';
 
                 // 5. Agendamento (formato enxuto)
-                $sugestao = \App\Support\AgendamentoPresenca::sugestao($a);
                 $temAgendamento = (bool) ($a->presenca_abre_em || $a->presenca_fecha_em);
-                $valAbreInput = \App\Support\AgendamentoPresenca::paraInput($a->presenca_abre_em) ?? ($sugestao['abre'] ?? '');
-                $valFechaInput = \App\Support\AgendamentoPresenca::paraInput($a->presenca_fecha_em) ?? ($sugestao['fecha'] ?? '');
+                $valAbreInput = \App\Support\AgendamentoPresenca::paraInput($a->presenca_abre_em) ?? '';
+                $valFechaInput = \App\Support\AgendamentoPresenca::paraInput($a->presenca_fecha_em) ?? '';
 
                 $agendamentoParts = [];
                 if ($a->presenca_abre_em) {
